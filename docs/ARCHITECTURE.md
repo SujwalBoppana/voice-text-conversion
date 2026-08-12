@@ -166,6 +166,41 @@ The result reads like the original page instead of a generic vertical stack, and
 it degrades gracefully: a form the model boxes poorly still renders, just less
 faithfully.
 
+## Where the API key lives
+
+The key is configured **in the app**, not in server config, and travels on the
+request that needs it:
+
+```
+browser (localStorage)  ──  x-gemini-api-key header  ──►  server  ──►  Gemini
+        │                                                   │
+   masked in the UI,                              used for this request only:
+   one-click Forget                               never stored, logged or echoed
+```
+
+Consequences worth stating:
+
+- **The server holds no secret by default.** `GEMINI_API_KEY` remains supported
+  and is used when a request carries none — that is what keeps curl, the smoke
+  test and headless deployments working — but the normal path needs no `.env`.
+- **Keys are checked before they are accepted.** `POST /api/settings/verify-key`
+  calls `countTokens`, which is free and requires working auth, so a mistyped key
+  fails in the Settings dialog in under a second rather than surfacing as a
+  failed upload thirty seconds later.
+- **Model choice is per-request too** (`x-gemini-analysis-model`,
+  `x-gemini-extraction-model`), validated against a model-id pattern because the
+  value ends up in a URL path.
+- **SDK clients are cached per key**, in a bounded map, so a session does not
+  rebuild one per request and a shared deployment cannot leak them without limit.
+- **Failures that Settings can fix are routed there.** A rejected key, an
+  unavailable model or a missing key reopens the dialog with the reason at the
+  top instead of dead-ending in a banner.
+
+The trade-off taken deliberately: `localStorage` is readable by any script on the
+origin. For a locally run tool holding the user's own key that is acceptable, and
+it is why the UI always masks the key and offers **Forget key**. A multi-tenant
+deployment should set the server-side key instead and never accept the header.
+
 ## Trust boundary
 
 Everything the model returns is a **proposal**. The boundary is enforced twice:

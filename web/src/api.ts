@@ -14,13 +14,40 @@ export class ApiError extends Error {
   ) {
     super(message);
   }
+
+  /** True when the fix is "go to Settings", so the UI can offer that directly. */
+  get isKeyProblem(): boolean {
+    return (
+      this.status === 401 ||
+      this.code === 'GEMINI_NOT_CONFIGURED' ||
+      this.code === 'GEMINI_KEY_REJECTED' ||
+      this.code === 'INVALID_API_KEY_FORMAT' ||
+      this.code === 'GEMINI_MODEL_UNAVAILABLE'
+    );
+  }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Headers carrying the app-configured key and models.
+ *
+ * Injected rather than imported so that `api` has no dependency on the settings
+ * store — the store wires itself in at startup.
+ */
+let authHeaders: () => Record<string, string> = () => ({});
+
+export function setAuthHeaderSource(source: () => Record<string, string>): void {
+  authHeaders = source;
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(path, init);
-  } catch {
+    response = await fetch(path, {
+      ...init,
+      headers: { ...authHeaders(), ...(init.headers ?? {}) },
+    });
+  } catch (error) {
+    if ((error as Error)?.name === 'AbortError') throw error;
     throw new ApiError('NETWORK', 'Could not reach the server. Is it running?', 0);
   }
 
@@ -48,9 +75,7 @@ function safeParse(text: string): unknown {
 
 export const api = {
   health: () =>
-    request<{ ok: boolean; mockGemini: boolean; analysisModel: string; extractionModel: string }>(
-      '/api/health',
-    ),
+    request<{ ok: boolean; mockGemini: boolean; serverHasKey: boolean }>('/api/health'),
 
   upload: (file: File, signal?: AbortSignal) => {
     const body = new FormData();

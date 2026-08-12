@@ -2,9 +2,14 @@
 #
 # End-to-end exercise of the API against a running server.
 #
-#   npm run dev:server                    # real Gemini (needs GEMINI_API_KEY)
+#   npm run dev:server                    # real Gemini
 #   MOCK_GEMINI=true npm run dev:server   # offline fixture
 #   ./scripts/smoke-test.sh
+#
+# The key normally lives in the app, so this script sends it the same way the
+# browser does — export GEMINI_API_KEY here even if the server has none:
+#
+#   GEMINI_API_KEY=AIza... ./scripts/smoke-test.sh
 #
 # Optional: BASE=http://localhost:4000 FILE=path/to/form.pdf ./scripts/smoke-test.sh
 
@@ -13,6 +18,12 @@ set -euo pipefail
 BASE="${BASE:-http://localhost:4000}"
 FILE="${FILE:-samples/paramitha-initial-assessment.pdf}"
 
+# Sent on the calls that reach a model, exactly as the app does.
+KEY_HEADER=()
+if [[ -n "${GEMINI_API_KEY:-}" ]]; then
+  KEY_HEADER=(-H "x-gemini-api-key: ${GEMINI_API_KEY}")
+fi
+
 jqish() { node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(require('util').inspect(eval('(' + '('+d+')' + ')')$1,{depth:6,colors:true,maxArrayLength:40}))}catch(e){console.log(d.slice(0,600))}})"; }
 
 step() { printf '\n\033[1;36m== %s\033[0m\n' "$1"; }
@@ -20,8 +31,11 @@ step() { printf '\n\033[1;36m== %s\033[0m\n' "$1"; }
 step "health"
 curl -sS "$BASE/api/health" | jqish ""
 
+step "settings the app reads"
+curl -sS "$BASE/api/settings" | jqish ".models.map(m => m.id)"
+
 step "upload page 1 of $FILE"
-UPLOAD=$(curl -sS -X POST "$BASE/api/forms" -F "file=@$FILE")
+UPLOAD=$(curl -sS -X POST "$BASE/api/forms" "${KEY_HEADER[@]}" -F "file=@$FILE")
 FORM_ID=$(node -e "console.log(JSON.parse(process.argv[1]).schema.formId)" "$UPLOAD")
 node -e '
 const r = JSON.parse(process.argv[1]);
@@ -38,7 +52,7 @@ console.log("usage         :", JSON.stringify(r.usage));
 
 say() {
   printf '\n\033[0;35m> %s\033[0m\n' "$1"
-  curl -sS -X POST "$BASE/api/forms/$FORM_ID/messages" \
+  curl -sS -X POST "$BASE/api/forms/$FORM_ID/messages" "${KEY_HEADER[@]}" \
     -H 'content-type: application/json' \
     -d "$(node -e 'console.log(JSON.stringify({pageNumber:1,message:process.argv[1]}))' "$1")" |
     node -e '

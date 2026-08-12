@@ -5,17 +5,24 @@ import type { ApiError } from '@formfill/shared';
 import { config } from './config.js';
 import { AppError, isAppError } from './lib/errors.js';
 import { formsRouter } from './routes/forms.js';
+import { settingsRouter } from './routes/settings.js';
 import { initStore } from './services/store.js';
 
 const app = express();
 
-app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',') }));
+app.use(
+  cors({
+    origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(','),
+    // The browser supplies the Gemini key and model choice per request.
+    allowedHeaders: ['content-type', 'x-gemini-api-key', 'x-gemini-analysis-model', 'x-gemini-extraction-model'],
+  }),
+);
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    geminiConfigured: Boolean(config.apiKey),
+    serverHasKey: Boolean(config.apiKey),
     mockGemini: config.mockGemini,
     analysisModel: config.mockGemini ? 'mock' : config.analysisModel,
     extractionModel: config.mockGemini ? 'mock' : config.extractionModel,
@@ -23,6 +30,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.use('/api/settings', settingsRouter);
 app.use('/api/forms', formsRouter);
 
 app.use((_req, res) => {
@@ -62,7 +70,7 @@ async function main() {
         `pages=1..${config.maxAnalyzedPages}`,
     );
     if (!config.apiKey && !config.mockGemini) {
-      console.warn('[server] GEMINI_API_KEY is not set — uploads will return 503.');
+      console.log('[server] no GEMINI_API_KEY set — the app will ask for a key in Settings.');
     }
   });
 }

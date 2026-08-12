@@ -18,6 +18,7 @@ import {
 } from '@formfill/shared';
 import { config } from '../config.js';
 import { AppError } from '../lib/errors.js';
+import type { RequestContext } from '../lib/apiKey.js';
 import {
   EXTRACTION_SYSTEM_INSTRUCTION,
   extractionResponseSchema,
@@ -58,6 +59,7 @@ export async function runExtraction(
   record: FormRecord,
   pageNumber: number,
   message: string,
+  ctx: RequestContext,
 ): Promise<ExtractionResponse> {
   const now = new Date();
   const fields = fieldsOfPage(record.schema, pageNumber);
@@ -111,7 +113,8 @@ export async function runExtraction(
     usage = { model: 'mock', latencyMs: 0 };
   } else {
     const result = await generateJson<unknown>({
-      model: config.extractionModel,
+      apiKey: ctx.apiKey,
+      model: ctx.extractionModel,
       systemInstruction: EXTRACTION_SYSTEM_INSTRUCTION,
       parts: [
         {

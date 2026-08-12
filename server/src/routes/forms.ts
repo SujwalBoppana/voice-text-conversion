@@ -9,7 +9,8 @@ import {
   type FormEnvelope,
   type UploadResponse,
 } from '@formfill/shared';
-import { config, assertGeminiConfigured } from '../config.js';
+import { config } from '../config.js';
+import { resolveContext } from '../lib/apiKey.js';
 import { AppError } from '../lib/errors.js';
 import { analyzeDocument } from '../services/formAnalysis.js';
 import { runExtraction } from '../services/extraction.js';
@@ -46,12 +47,13 @@ function envelope(record: FormRecord): FormEnvelope {
 /** POST /api/forms — upload a document and generate its schema. */
 formsRouter.post('/', upload.single('file'), async (req, res, next) => {
   try {
-    assertGeminiConfigured();
     if (!req.file) throw new AppError('NO_FILE', 'Attach the document as the "file" field.', 400);
+    const ctx = resolveContext(req);
 
     const { schema, pages, usage } = await analyzeDocument(req.file.buffer, {
       filename: req.file.originalname || 'upload',
       declaredMimeType: req.file.mimetype,
+      ctx,
     });
 
     const assets: FormRecord['assets'] = {};
@@ -155,7 +157,7 @@ formsRouter.post('/:formId/fields/:fieldId/resolve', async (req, res, next) => {
 /** POST /api/forms/:formId/messages — a conversation turn; runs extraction. */
 formsRouter.post('/:formId/messages', async (req, res, next) => {
   try {
-    assertGeminiConfigured();
+    const ctx = resolveContext(req);
     const { message, pageNumber = 1 } = req.body ?? {};
     if (typeof message !== 'string' || !message.trim()) {
       throw new AppError('EMPTY_MESSAGE', 'message must be a non-empty string.', 400);
@@ -173,7 +175,7 @@ formsRouter.post('/:formId/messages', async (req, res, next) => {
       };
       record.messages.push(userMessage);
 
-      const extraction = await runExtraction(record, Number(pageNumber), userMessage.content);
+      const extraction = await runExtraction(record, Number(pageNumber), userMessage.content, ctx);
 
       const assistantMessage: ChatMessage = {
         id: randomUUID(),

@@ -1,24 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, ExtractionResponse } from '@formfill/shared';
+import type { TurnResult } from '../state/formSession';
 
 interface Props {
   messages: ChatMessage[];
+  turnResults: Record<string, TurnResult>;
   busy: boolean;
   queuedLines: number;
   usage: ExtractionResponse['usage'] | null;
   onSay: (text: string) => void;
   onFlush: () => void;
+  onJumpToField: (fieldId: string) => void;
 }
 
 const EXAMPLES = [
   'The baby is Rahul Kumar, born today at 10:35 am, weight 2.4 kg.',
   'Amniotic fluid was clear and he cried immediately after birth.',
-  'Mother is 30, blood group O positive, gravida 2 para 1.',
+  'Mother is 30, gravida 2 para 1, delivery was by LSCS.',
 ];
 
-export function ConversationPanel({ messages, busy, queuedLines, usage, onSay, onFlush }: Props) {
+export function ConversationPanel({
+  messages,
+  turnResults,
+  busy,
+  queuedLines,
+  usage,
+  onSay,
+  onFlush,
+  onJumpToField,
+}: Props) {
   const [draft, setDraft] = useState('');
   const scroller = useRef<HTMLDivElement | null>(null);
+  const input = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
@@ -31,6 +44,7 @@ export function ConversationPanel({ messages, busy, queuedLines, usage, onSay, o
     setDraft('');
     // Explicit send skips the debounce window — the user is done talking.
     onFlush();
+    input.current?.focus();
   };
 
   return (
@@ -55,16 +69,52 @@ export function ConversationPanel({ messages, busy, queuedLines, usage, onSay, o
           </div>
         )}
 
-        {messages.map((message) => (
-          <div key={message.id} className={`bubble ${message.role}`}>
-            <span className="who">{message.role === 'user' ? 'You' : 'Assistant'}</span>
-            <p>{message.content}</p>
-          </div>
-        ))}
+        {messages.map((message) => {
+          const result = turnResults[message.id];
+          return (
+            <div key={message.id} className={`bubble ${message.role}`}>
+              <span className="who">{message.role === 'user' ? 'You' : 'Assistant'}</span>
+              <p>{message.content}</p>
+
+              {result && (
+                <div className="turn-result">
+                  {result.applied.map((f) => (
+                    <button
+                      key={f.fieldId}
+                      className="chip filled"
+                      onClick={() => onJumpToField(f.fieldId)}
+                      title="Go to this field"
+                    >
+                      ✓ {f.label}
+                    </button>
+                  ))}
+                  {result.pending.map((f) => (
+                    <button
+                      key={f.fieldId}
+                      className="chip pending"
+                      onClick={() => onJumpToField(f.fieldId)}
+                      title="Needs your decision"
+                    >
+                      ⚠ {f.label}
+                    </button>
+                  ))}
+                  {result.rejected.map((r) => (
+                    <span key={r.fieldId + r.reason} className="chip rejected" title={r.reason}>
+                      ✕ {r.fieldId}
+                    </span>
+                  ))}
+                  {result.skipped && <span className="chip muted">no form data</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {queuedLines > 0 && !busy && (
           <div className="bubble system">
-            <p>Batching {queuedLines} line{queuedLines === 1 ? '' : 's'}…</p>
+            <p>
+              Batching {queuedLines} line{queuedLines === 1 ? '' : 's'}…
+            </p>
           </div>
         )}
         {busy && (
@@ -84,9 +134,11 @@ export function ConversationPanel({ messages, busy, queuedLines, usage, onSay, o
         }}
       >
         <textarea
+          ref={input}
           value={draft}
           placeholder="e.g. Born today at 10:35 am, weight 2.4 kg, cried immediately."
           rows={2}
+          aria-label="Message"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -100,11 +152,14 @@ export function ConversationPanel({ messages, busy, queuedLines, usage, onSay, o
         </button>
       </form>
 
-      {usage && (
-        <footer className="usage" title="Tokens used by the last extraction call">
-          {usage.model} · {usage.totalTokens ?? '–'} tokens · {usage.latencyMs} ms
-        </footer>
-      )}
+      <footer className="usage">
+        <span className="hint small">Enter to send · Shift+Enter for a new line</span>
+        {usage && (
+          <span title="Tokens used by the last extraction call">
+            {usage.model} · {usage.totalTokens ?? '–'} tok · {usage.latencyMs} ms
+          </span>
+        )}
+      </footer>
     </aside>
   );
 }

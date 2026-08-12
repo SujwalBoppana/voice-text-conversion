@@ -23,18 +23,24 @@ changes.
 ## Run it locally
 
 **Prerequisites:** Node 20.11+ and a Gemini API key from
-[aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) (free).
 
 ```bash
 npm install
-
-cp .env.example server/.env
-$EDITOR server/.env          # set GEMINI_API_KEY
-
 npm run dev                  # API on :4000, UI on :5173
 ```
 
-Open <http://localhost:5173>.
+Open <http://localhost:5173> and paste your key into **Settings** when the app
+asks. No `.env` editing, no restart: the key is entered in the app, checked
+against Google before it is accepted, kept in your browser, and sent on the
+requests that need it. The server never stores it.
+
+If you would rather run headless — for curl, CI or a shared deployment — set
+`GEMINI_API_KEY` on the server instead and the app will use that:
+
+```bash
+cp .env.example server/.env && $EDITOR server/.env
+```
 
 **Without an API key** — the whole UI, validator, conflict logic and HTTP surface
 run against a captured fixture:
@@ -60,8 +66,8 @@ npm start         # run the built server
 The document is committed at `samples/paramitha-initial-assessment.pdf` (4 pages;
 **only page 1 is processed**, as specified for the MVP).
 
-**In the UI:** drop the PDF on the upload screen, wait for the analysis, then
-paste into the conversation panel:
+**In the UI:** add your key in Settings, drop the PDF on the upload screen, wait
+for the analysis, then paste into the conversation panel:
 
 > The baby is Rahul Kumar, born today at 10:35 AM. He is male and weighs 2.4
 > kilograms. He cried immediately after birth.
@@ -77,9 +83,11 @@ Fields fill and are badged `auto`. Then try each guard:
 | `Start him on ampicillin.` | Dropped — page 1 has no such field |
 | `ok thanks` | Gated locally — no API call at all |
 
-Switch to **Original** in the toolbar to see the same live fields overlaid on the
-real page (Mode B). Every field is editable by hand; a hand-edited field can
-never be silently overwritten.
+Each reply carries chips for the fields it touched — click one to jump straight
+to that field. The toolbar shows live progress and a **to review** button that
+walks you through anything awaiting a decision. Switch to **Original** to see the
+same live fields overlaid on the real page (Mode B). Every field is editable by
+hand; a hand-edited field can never be silently overwritten.
 
 **From the shell:**
 
@@ -183,13 +191,34 @@ assets, a page-keyed analysis cache, and an ingest function that takes a list of
 page numbers. Widening to pages 2–4 is `MAX_ANALYZED_PAGES=4` plus a page
 switcher in the UI. No migration, no redesign.
 
+## Settings, in the app
+
+The Gemini key and both model choices are set in the app's **Settings** dialog,
+not in a config file:
+
+- **Key entry is checked before it is accepted.** The app calls `countTokens`,
+  which is free, so a mistyped key fails in the dialog in under a second instead
+  of surfacing as a failed upload half a minute later.
+- **The key stays in the browser** (`localStorage`), is sent as
+  `x-gemini-api-key` on the requests that need it, and is never written to disk
+  or into a form record by the server. It is always displayed masked, with a
+  one-click **Forget key**.
+- **Model choice is per-role** — one model for reading the page, one for the
+  conversation — each with a plain-language note on the trade-off.
+- **Failures route back to Settings.** A rejected key, an unavailable model or a
+  missing key reopens the dialog with the reason at the top, rather than dead-
+  ending in a red banner.
+
+`GEMINI_API_KEY` in the environment still works and is used when the browser
+supplies none, which is what keeps curl and the smoke test working.
+
 ## Configuration
 
 See [`.env.example`](.env.example). The essentials:
 
 | Variable | Default | |
 |---|---|---|
-| `GEMINI_API_KEY` | — | required unless `MOCK_GEMINI=true` |
+| `GEMINI_API_KEY` | — | optional fallback; normally the key is set in the app |
 | `GEMINI_ANALYSIS_MODEL` | `gemini-2.5-pro` | once per page; the hard visual task |
 | `GEMINI_EXTRACTION_MODEL` | `gemini-2.5-flash` | every turn; in the critical path |
 | `GEMINI_EXTRACTION_THINKING_BUDGET` | `0` | thinking off for latency |

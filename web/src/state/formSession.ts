@@ -26,27 +26,51 @@ import { api, ApiError } from '../api';
 
 export type RenderMode = 'form' | 'overlay';
 
+export interface Toast {
+  id: string;
+  kind: 'info' | 'success' | 'warn' | 'error';
+  message: string;
+  /** Optional one-click follow-up, e.g. "Open settings". */
+  action?: { label: string; run: () => void };
+}
+
+/** What one conversation turn did, shown as chips under the reply. */
+export interface TurnResult {
+  applied: Array<{ fieldId: string; label: string }>;
+  pending: Array<{ fieldId: string; label: string }>;
+  rejected: Array<{ fieldId: string; reason: string }>;
+  skipped: boolean;
+}
+
 export interface SessionSnapshot {
   schema: FormSchema | null;
   state: FormState | null;
   messages: ChatMessage[];
+  /** Keyed by assistant message id. */
+  turnResults: Record<string, TurnResult>;
   pageAssetUrl: string | null;
   pageNumber: number;
   mode: RenderMode;
   /** Ids updated by the most recent extraction, for the flash highlight. */
   justUpdated: string[];
+  /** Field the UI should scroll to and focus; cleared once handled. */
+  focusFieldId: string | null;
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';
   busy: boolean;
   /** Draft lines waiting for the debounce window to close. */
   queuedLines: number;
   error: string | null;
+  /** Set when a call failed for a reason Settings can fix. */
+  keyProblem: string | null;
+  toasts: Toast[];
   lastUsage: ExtractionResponse['usage'] | null;
   analysisUsage: { model: string; totalTokens?: number; latencyMs: number; cached: boolean } | null;
   savedAt: string | null;
 }
 
 const DEBOUNCE_MS = 600;
-const FLASH_MS = 2200;
+const FLASH_MS = 2400;
+const TOAST_MS = 6000;
 
 export class FormSession {
   private listeners = new Set<() => void>();
@@ -54,14 +78,18 @@ export class FormSession {
     schema: null,
     state: null,
     messages: [],
+    turnResults: {},
     pageAssetUrl: null,
     pageNumber: 1,
     mode: 'form',
     justUpdated: [],
+    focusFieldId: null,
     status: 'idle',
     busy: false,
     queuedLines: 0,
     error: null,
+    keyProblem: null,
+    toasts: [],
     lastUsage: null,
     analysisUsage: null,
     savedAt: null,
@@ -84,19 +112,33 @@ export class FormSession {
     for (const listener of this.listeners) listener();
   }
 
+  /* --------------------------------- toasts -------------------------------- */
+
+  toast(kind: Toast['kind'], message: string, action?: Toast['action']): void {
+    const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    this.set({ toasts: [...this.snapshot.toasts, { id, kind, message, action }] });
+    if (kind !== 'error') setTimeout(() => this.dismissToast(id), TOAST_MS);
+  }
+
+  dismissToast(id: string): void {
+    this.set({ toasts: this.snapshot.toasts.filter((t) => t.id !== id) });
+  }
+
   /* ------------------------------- lifecycle ------------------------------ */
 
   async upload(file: File): Promise<void> {
-    this.set({ status: 'uploading', error: null, busy: true });
+    this.set({ status: 'uploading', error: null, keyProblem: null, busy: true });
     try {
       // The status flips to "analyzing" straight away: the upload itself is
       // milliseconds on a LAN, the model call is the wait worth naming.
       this.set({ status: 'analyzing' });
       const result = await api.upload(file);
+      const fieldCount = result.schema.pages[0]?.sections.flatMap((s) => s.fields).length ?? 0;
       this.set({
         schema: result.schema,
         state: result.state,
         messages: [],
+        turnResults: {},
         pageAssetUrl: result.pageAssetUrl,
         pageNumber: result.schema.analyzedPages[0] ?? 1,
         status: 'ready',
@@ -106,6 +148,12 @@ export class FormSession {
         justUpdated: [],
       });
       history.replaceState(null, '', `#${result.schema.formId}`);
+      this.toast(
+        'success',
+        `Read ${fieldCount} field${fieldCount === 1 ? '' : 's'} from page 1${
+          result.usage?.cached ? ' (from cache)' : ''
+        }.`,
+      );
     } catch (error) {
       this.fail(error, 'The document could not be analyzed.');
     }
@@ -125,7 +173,12 @@ export class FormSession {
         busy: false,
       });
     } catch (error) {
-      this.fail(error, 'That form could not be loaded.');
+      // A stale deep link is not an error worth a red banner; drop to upload.
+      history.replaceState(null, '', ' ');
+      this.set({ status: 'idle', busy: false });
+      if (error instanceof ApiError && error.status !== 404) {
+        this.fail(error, 'That form could not be loaded.');
+      }
     }
   }
 
@@ -136,11 +189,14 @@ export class FormSession {
       schema: null,
       state: null,
       messages: [],
+      turnResults: {},
       pageAssetUrl: null,
       status: 'idle',
       busy: false,
       error: null,
+      keyProblem: null,
       justUpdated: [],
+      focusFieldId: null,
       queuedLines: 0,
       lastUsage: null,
       analysisUsage: null,
@@ -150,6 +206,14 @@ export class FormSession {
 
   setMode(mode: RenderMode): void {
     this.set({ mode });
+  }
+
+  focusField(fieldId: string | null): void {
+    this.set({ focusFieldId: fieldId });
+  }
+
+  clearKeyProblem(): void {
+    this.set({ keyProblem: null });
   }
 
   /* ------------------------------ conversation ---------------------------- */
@@ -171,15 +235,21 @@ export class FormSession {
       at: new Date().toISOString(),
     });
 
-    const labels = this.fieldLabels();
-    const gate = isLikelyRelevant(trimmed, labels);
+    const gate = isLikelyRelevant(trimmed, this.fieldLabels());
     if (!gate.relevant) {
       // Answered locally: no network, no tokens, no latency.
+      const id = `local_ack_${Date.now()}`;
       this.appendLocalMessage({
-        id: `local_ack_${Date.now()}`,
+        id,
         role: 'assistant',
-        content: 'Nothing to record from that.',
+        content: 'Nothing in that to record.',
         at: new Date().toISOString(),
+      });
+      this.set({
+        turnResults: {
+          ...this.snapshot.turnResults,
+          [id]: { applied: [], pending: [], rejected: [], skipped: true },
+        },
       });
       return;
     }
@@ -215,20 +285,32 @@ export class FormSession {
         controller.signal,
       );
       const assistant = result.messages.find((m) => m.role === 'assistant');
-      const touched = [
-        ...result.extraction.applied.map((u) => u.fieldId),
-        ...result.extraction.pending.map((u) => u.fieldId),
-      ];
+      const { applied, pending, rejected } = result.extraction;
+      const touched = [...applied.map((u) => u.fieldId), ...pending.map((u) => u.fieldId)];
+
       this.set({
         state: result.state,
         busy: false,
         lastUsage: result.extraction.usage ?? null,
         justUpdated: touched,
-        messages: assistant
-          ? [...this.snapshot.messages, assistant]
-          : this.snapshot.messages,
+        // Scroll to the first thing that needs a decision, else the first fill.
+        focusFieldId: pending[0]?.fieldId ?? applied[0]?.fieldId ?? null,
+        messages: assistant ? [...this.snapshot.messages, assistant] : this.snapshot.messages,
+        turnResults: assistant
+          ? {
+              ...this.snapshot.turnResults,
+              [assistant.id]: {
+                applied: applied.map((u) => ({ fieldId: u.fieldId, label: this.labelOf(u.fieldId) })),
+                pending: pending.map((u) => ({ fieldId: u.fieldId, label: this.labelOf(u.fieldId) })),
+                rejected: rejected.map((r) => ({ fieldId: r.fieldId, reason: r.reason })),
+                skipped: result.extraction.skipped,
+              },
+            }
+          : this.snapshot.turnResults,
       });
       this.scheduleFlashClear();
+      // No toast for `pending` on purpose: the chat chip, the "to review" count
+      // in the toolbar and the auto-scroll already say it three ways.
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
       this.fail(error, 'That message could not be processed.');
@@ -286,9 +368,26 @@ export class FormSession {
     try {
       const result = await api.save(schema.formId);
       this.set({ state: result.state, savedAt: result.savedAt, busy: false });
+      this.toast('success', 'Form saved.');
     } catch (error) {
       this.fail(error, 'The form could not be saved.');
     }
+  }
+
+  /** Download the filled form as JSON — schema, values and provenance together. */
+  exportJson(): void {
+    const { schema, state } = this.snapshot;
+    if (!schema || !state) return;
+    const blob = new Blob([JSON.stringify({ schema, state }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${schema.formId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.toast('success', 'Exported as JSON.');
   }
 
   dismissError(): void {
@@ -298,8 +397,19 @@ export class FormSession {
   /* -------------------------------- internals ----------------------------- */
 
   private fieldLabels(): string[] {
-    const page = this.snapshot.schema?.pages.find((p) => p.pageNumber === this.snapshot.pageNumber);
-    return page?.sections.flatMap((s) => s.fields.map((f) => f.label)) ?? [];
+    return this.page()?.sections.flatMap((s) => s.fields.map((f) => f.label)) ?? [];
+  }
+
+  private page() {
+    return this.snapshot.schema?.pages.find((p) => p.pageNumber === this.snapshot.pageNumber);
+  }
+
+  private labelOf(fieldId: string): string {
+    for (const section of this.page()?.sections ?? []) {
+      const field = section.fields.find((f) => f.id === fieldId);
+      if (field) return field.label;
+    }
+    return fieldId;
   }
 
   private appendLocalMessage(message: ChatMessage): void {
@@ -333,7 +443,22 @@ export class FormSession {
   }
 
   private fail(error: unknown, fallback: string): void {
-    const message = error instanceof ApiError ? error.message : fallback;
+    const isApi = error instanceof ApiError;
+    const message = isApi ? error.message : fallback;
+
+    // A key or model problem is routed to Settings rather than shown as a dead
+    // end — it is the one class of failure the user can fix in two clicks.
+    if (isApi && error.isKeyProblem) {
+      this.set({
+        keyProblem: message,
+        busy: false,
+        status: this.snapshot.schema ? 'ready' : 'idle',
+        error: null,
+      });
+      return;
+    }
+
     this.set({ error: message, busy: false, status: this.snapshot.schema ? 'ready' : 'error' });
+    this.toast('error', message);
   }
 }

@@ -3,6 +3,82 @@
 Base URL `http://localhost:4000`. Errors are always
 `{ "error": { "code": string, "message": string, "details"?: unknown } }`.
 
+## Authentication
+
+Endpoints that can reach a model take the Gemini key from a request header, so
+the key can be set in the app rather than in server config:
+
+| Header | Purpose |
+|---|---|
+| `x-gemini-api-key` | The Gemini API key. Falls back to `GEMINI_API_KEY` on the server when absent. |
+| `x-gemini-analysis-model` | Overrides the page-analysis model for this request. |
+| `x-gemini-extraction-model` | Overrides the extraction model for this request. |
+
+The key is used for the duration of the request and never persisted, logged or
+returned. `POST /api/forms` and `POST /api/forms/:id/messages` need it; the
+read, edit, resolve and save endpoints do not.
+
+Without a key from either source those endpoints return `401
+GEMINI_NOT_CONFIGURED`. A key Google rejects returns `401 GEMINI_KEY_REJECTED`.
+
+---
+
+## `GET /api/settings`
+
+What the app needs to render its settings panel.
+
+```bash
+curl -s localhost:4000/api/settings
+```
+
+```json
+{
+  "serverHasKey": false,
+  "mockGemini": false,
+  "defaults": { "analysisModel": "gemini-2.5-pro", "extractionModel": "gemini-2.5-flash" },
+  "models": [
+    { "id": "gemini-2.5-pro", "label": "Gemini 2.5 Pro", "note": "Most accurate on scans and dense forms. Slower.", "roles": ["analysis"] },
+    { "id": "gemini-2.5-flash", "label": "Gemini 2.5 Flash", "note": "Fast and cheap. Good for clean digital PDFs and for conversation.", "roles": ["analysis", "extraction"] },
+    { "id": "gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash Lite", "note": "Lowest latency. Best only for short, plain dictation.", "roles": ["extraction"] }
+  ],
+  "maxAnalyzedPages": 1,
+  "maxUploadBytes": 26214400,
+  "apiKeyUrl": "https://aistudio.google.com/apikey"
+}
+```
+
+---
+
+## `POST /api/settings/verify-key`
+
+Checks a key before the app stores it. Uses `countTokens`, which is free, so
+checking costs the user nothing.
+
+```bash
+curl -s -X POST localhost:4000/api/settings/verify-key \
+  -H 'content-type: application/json' \
+  -d '{ "apiKey": "AIza…", "model": "gemini-2.5-flash" }'
+```
+
+```json
+{ "ok": true, "model": "gemini-2.5-flash", "message": "Key works with gemini-2.5-flash." }
+```
+
+Rejected (`400`):
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "GEMINI_KEY_REJECTED",
+    "message": "Google rejected that API key. Check that it is correct and that the Generative Language API is enabled for its project."
+  }
+}
+```
+
+Other codes: `INVALID_API_KEY_FORMAT` (fails a local shape check, no call made),
+`GEMINI_MODEL_UNAVAILABLE`, `GEMINI_RATE_LIMITED`, `GEMINI_UNREACHABLE`.
+
 ---
 
 ## `GET /api/health`
@@ -14,7 +90,7 @@ curl -s localhost:4000/api/health
 ```json
 {
   "ok": true,
-  "geminiConfigured": true,
+  "serverHasKey": false,
   "mockGemini": false,
   "analysisModel": "gemini-2.5-pro",
   "extractionModel": "gemini-2.5-flash",
@@ -31,6 +107,7 @@ an empty state. **This is the only endpoint that sends the document to a model.*
 
 ```bash
 curl -s -X POST localhost:4000/api/forms \
+  -H "x-gemini-api-key: $GEMINI_API_KEY" \
   -F "file=@samples/paramitha-initial-assessment.pdf"
 ```
 
@@ -82,7 +159,7 @@ curl -s -X POST localhost:4000/api/forms \
 
 Errors: `415 UNSUPPORTED_MEDIA_TYPE`, `413 UPLOAD_TOO_LARGE`, `422 PDF_PARSE_FAILED`,
 `422 NO_FIELDS_DETECTED`, `502 ANALYSIS_SCHEMA_INVALID`, `502 MALFORMED_MODEL_JSON`,
-`503 GEMINI_NOT_CONFIGURED`.
+`401 GEMINI_NOT_CONFIGURED`, `401 GEMINI_KEY_REJECTED`.
 
 ---
 
@@ -107,6 +184,7 @@ A conversation turn. Runs the gate, then extraction if warranted.
 
 ```bash
 curl -s -X POST localhost:4000/api/forms/form_9f3a21c4/messages \
+  -H "x-gemini-api-key: $GEMINI_API_KEY" \
   -H 'content-type: application/json' \
   -d '{
         "pageNumber": 1,

@@ -1,85 +1,153 @@
 import { useRef, useState } from 'react';
+import type { SettingsSnapshot } from '../state/settingsStore';
 
 interface Props {
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';
   error: string | null;
+  settings: SettingsSnapshot;
   onUpload: (file: File) => void;
+  onOpenSettings: () => void;
 }
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp';
+const MAX_MB = 25;
 
-export function UploadScreen({ status, error, onUpload }: Props) {
+export function UploadScreen({ status, error, settings, onUpload, onOpenSettings }: Props) {
   const input = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const busy = status === 'uploading' || status === 'analyzing';
+  const blocked = !settings.ready;
 
   const pick = (files: FileList | null) => {
     const file = files?.[0];
-    if (file) onUpload(file);
+    if (!file) return;
+    setLocalError(null);
+
+    // Fail fast in the browser rather than after a 25 MB round trip.
+    if (!/\.(pdf|png|jpe?g|webp)$/i.test(file.name) && !/^(application\/pdf|image\/)/.test(file.type)) {
+      setLocalError(`"${file.name}" is not a PDF or image.`);
+      return;
+    }
+    if (file.size > MAX_MB * 1e6) {
+      setLocalError(`That file is ${(file.size / 1e6).toFixed(1)} MB — the limit is ${MAX_MB} MB.`);
+      return;
+    }
+    onUpload(file);
+  };
+
+  const open = () => {
+    if (busy) return;
+    if (blocked) {
+      onOpenSettings();
+      return;
+    }
+    input.current?.click();
   };
 
   return (
     <div className="upload-screen">
       <div className="upload-card">
-        <h1>Dynamic form autofill</h1>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true" />
+          <h1>Dynamic form autofill</h1>
+        </div>
         <p className="lede">
           Upload any form — a scanned clinic sheet, an onboarding pack, an account opening form.
-          Page 1 is read visually, turned into an editable form, and filled from what you dictate.
+          Page&nbsp;1 is read visually, turned into an editable form that keeps the original layout,
+          and filled from what you dictate.
         </p>
 
-        <div
-          className={`dropzone ${dragging ? 'over' : ''} ${busy ? 'busy' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            if (!busy) pick(e.dataTransfer.files);
-          }}
-          onClick={() => !busy && input.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && !busy) input.current?.click();
-          }}
-        >
-          {busy ? (
-            <>
-              <div className="spinner" />
-              <p>
-                <b>{status === 'uploading' ? 'Uploading…' : 'Reading page 1…'}</b>
-              </p>
-              <p className="hint">
-                The page is being analyzed visually — sections, blanks, printed choices and their
-                positions. This takes a few seconds and happens once per document.
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                <b>Drop a PDF or image here</b>
-              </p>
-              <p className="hint">or click to choose · PDF, PNG, JPEG, WebP · up to 25 MB</p>
-              <p className="hint small">Only page 1 is processed in this version.</p>
-            </>
-          )}
-          <input
-            ref={input}
-            type="file"
-            accept={ACCEPT}
-            hidden
-            onChange={(e) => pick(e.target.files)}
-          />
-        </div>
+        {blocked ? (
+          <div className="key-gate">
+            <h2>Add your Gemini API key to begin</h2>
+            <p className="hint">
+              The key stays in this browser. Getting one is free and takes about a minute.
+            </p>
+            <button className="primary large" onClick={onOpenSettings}>
+              Add API key
+            </button>
+          </div>
+        ) : (
+          <div
+            className={`dropzone ${dragging ? 'over' : ''} ${busy ? 'busy' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              if (!busy) pick(e.dataTransfer.files);
+            }}
+            onClick={open}
+            role="button"
+            tabIndex={0}
+            aria-busy={busy}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open();
+              }
+            }}
+          >
+            {busy ? (
+              <>
+                <div className="spinner" />
+                <p>
+                  <b>{status === 'uploading' ? 'Uploading…' : 'Reading page 1…'}</b>
+                </p>
+                <p className="hint">
+                  Finding sections, blanks, printed choices and their positions. A few seconds, once
+                  per document.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="drop-icon" aria-hidden="true">
+                  ⇪
+                </div>
+                <p>
+                  <b>Drop a PDF or image here</b>
+                </p>
+                <p className="hint">or click to choose · PDF, PNG, JPEG, WebP · up to {MAX_MB} MB</p>
+                <p className="hint small">Only page 1 is processed in this version.</p>
+              </>
+            )}
+            <input
+              ref={input}
+              type="file"
+              accept={ACCEPT}
+              hidden
+              onChange={(e) => {
+                pick(e.target.files);
+                e.target.value = ''; // allow re-picking the same file
+              }}
+            />
+          </div>
+        )}
 
-        {error && (
-          <p className="error-banner" role="alert">
-            {error}
+        {(localError || error) && (
+          <p className="callout error" role="alert">
+            {localError ?? error}
           </p>
         )}
+
+        <div className="upload-foot">
+          <button className="ghost small" onClick={onOpenSettings}>
+            ⚙ Settings
+          </button>
+          <span className="hint small">
+            {settings.server?.mockGemini
+              ? 'Mock mode — no API calls'
+              : settings.apiKey
+                ? 'Key set in this browser'
+                : settings.server?.serverHasKey
+                  ? 'Using the server key'
+                  : 'No key set'}
+          </span>
+        </div>
 
         <p className="disclaimer">
           Extraction records what you say — it does not interpret, infer or advise. Every value is

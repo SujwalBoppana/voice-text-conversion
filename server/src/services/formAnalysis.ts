@@ -7,6 +7,7 @@
  */
 import type { FormSchema, PageSchema } from '@formfill/shared';
 import { config } from '../config.js';
+import type { RequestContext } from '../lib/apiKey.js';
 import { AppError } from '../lib/errors.js';
 import { analysisPayloadSchema, newFormId, normalizePage } from '../lib/normalize.js';
 import {
@@ -27,8 +28,9 @@ export interface AnalyzeResult {
 
 export async function analyzeDocument(
   buffer: Buffer,
-  opts: { filename: string; declaredMimeType?: string },
+  opts: { filename: string; declaredMimeType?: string; ctx: RequestContext },
 ): Promise<AnalyzeResult> {
+  const { ctx } = opts;
   if (buffer.byteLength > config.maxUploadBytes) {
     throw new AppError(
       'UPLOAD_TOO_LARGE',
@@ -48,10 +50,10 @@ export async function analyzeDocument(
   const pages: PageSchema[] = [];
   let title = '';
   let cachedAll = true;
-  const usage: Usage = { model: config.analysisModel, latencyMs: 0, promptTokens: 0, responseTokens: 0, totalTokens: 0 };
+  const usage: Usage = { model: config.mockGemini ? 'mock' : ctx.analysisModel, latencyMs: 0, promptTokens: 0, responseTokens: 0, totalTokens: 0 };
 
   for (const page of ingested.pages) {
-    const key = analysisCacheKey(hash, page.pageNumber, config.analysisModel);
+    const key = analysisCacheKey(hash, page.pageNumber, ctx.analysisModel);
     const cached = getCachedAnalysis(key);
     if (cached) {
       pages.push(cached.schemaPage);
@@ -60,7 +62,7 @@ export async function analyzeDocument(
     }
     cachedAll = false;
 
-    const analyzed = await analyzePage(page, opts.filename);
+    const analyzed = await analyzePage(page, opts.filename, ctx);
     usage.latencyMs += analyzed.usage.latencyMs;
     usage.promptTokens = (usage.promptTokens ?? 0) + (analyzed.usage.promptTokens ?? 0);
     usage.responseTokens = (usage.responseTokens ?? 0) + (analyzed.usage.responseTokens ?? 0);
@@ -80,7 +82,7 @@ export async function analyzeDocument(
     analyzedPages: pages.map((p) => p.pageNumber),
     pages,
     createdAt: new Date().toISOString(),
-    analysisModel: config.mockGemini ? 'mock' : config.analysisModel,
+    analysisModel: config.mockGemini ? 'mock' : ctx.analysisModel,
   };
 
   return { schema, pages: ingested.pages, usage: { ...usage, cached: cachedAll } };
@@ -89,6 +91,7 @@ export async function analyzeDocument(
 async function analyzePage(
   page: ExtractedPage,
   filename: string,
+  ctx: RequestContext,
 ): Promise<{ page: PageSchema; title: string; usage: Usage }> {
   if (config.mockGemini) {
     const payload = await mockAnalysisPayload();
@@ -101,7 +104,8 @@ async function analyzePage(
   }
 
   const { data, usage } = await generateJson<unknown>({
-    model: config.analysisModel,
+    apiKey: ctx.apiKey,
+    model: ctx.analysisModel,
     systemInstruction: ANALYSIS_SYSTEM_INSTRUCTION,
     parts: [
       { inlineData: { mimeType: page.mimeType, data: page.bytes.toString('base64') } },
