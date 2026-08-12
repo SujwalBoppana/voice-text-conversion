@@ -1,0 +1,555 @@
+{
+  "_comment": [
+    "DEV FIXTURE ONLY. This is a captured example of the RAW model output for page 1 of",
+    "samples/paramitha-initial-assessment.pdf, in the exact shape declared by",
+    "src/schemas/analysisSchema.ts (box_2d = [ymin, xmin, ymax, xmax] on a 0-1000 grid).",
+    "",
+    "It is used when MOCK_GEMINI=true so the UI, the normalizer, the validator and the",
+    "conflict logic can be exercised without an API key. It is NEVER consulted when a real",
+    "key is configured, and no application code branches on any id in this file: the mock",
+    "path feeds this payload through exactly the same normalizePage() pipeline as a live",
+    "response. Uploading a different document with MOCK_GEMINI=true will therefore render",
+    "this form, which is the expected behaviour of a fixture."
+  ],
+  "title": "INITIAL ASSESSMENT FORM",
+  "sections": [
+    {
+      "id": "patient_details",
+      "title": "Patient Details",
+      "box_2d": [98, 50, 182, 975],
+      "fields": [
+        {
+          "id": "name",
+          "label": "Name",
+          "type": "text",
+          "required": false,
+          "box_2d": [110, 190, 124, 600],
+          "label_box_2d": [110, 58, 122, 187],
+          "confidence": 0.98
+        },
+        {
+          "id": "registration_no",
+          "label": "Registration No.",
+          "type": "text",
+          "required": false,
+          "box_2d": [137, 190, 151, 600],
+          "label_box_2d": [137, 58, 149, 188],
+          "confidence": 0.97
+        },
+        {
+          "id": "father_name",
+          "label": "Father Name",
+          "type": "text",
+          "required": false,
+          "box_2d": [163, 190, 177, 600],
+          "label_box_2d": [163, 58, 175, 189],
+          "confidence": 0.97
+        },
+        {
+          "id": "hospital",
+          "label": "Hospital",
+          "type": "text",
+          "required": false,
+          "box_2d": [110, 682, 124, 965],
+          "label_box_2d": [110, 609, 122, 679],
+          "confidence": 0.96
+        },
+        {
+          "id": "obstetrician",
+          "label": "Obstetrician",
+          "type": "text",
+          "required": false,
+          "box_2d": [163, 712, 177, 965],
+          "label_box_2d": [163, 609, 175, 708],
+          "confidence": 0.96
+        }
+      ]
+    },
+    {
+      "id": "antenatal_details",
+      "title": "Antenatal Details",
+      "box_2d": [196, 50, 330, 975],
+      "fields": [
+        {
+          "id": "mothers_age_at_conception",
+          "label": "Mother's age at conception",
+          "type": "number",
+          "unit": "years",
+          "required": false,
+          "box_2d": [233, 292, 247, 733],
+          "label_box_2d": [233, 59, 245, 290],
+          "confidence": 0.95
+        },
+        {
+          "id": "mothers_blood_group",
+          "label": "Mother's Blood Group",
+          "type": "text",
+          "required": false,
+          "box_2d": [233, 893, 247, 968],
+          "label_box_2d": [233, 740, 245, 890],
+          "confidence": 0.94
+        },
+        {
+          "id": "parity",
+          "label": "Parity",
+          "type": "number",
+          "required": true,
+          "box_2d": [259, 118, 273, 205],
+          "label_box_2d": [259, 59, 271, 116],
+          "confidence": 0.93
+        },
+        {
+          "id": "gravida",
+          "label": "Gravida",
+          "type": "number",
+          "required": false,
+          "box_2d": [259, 285, 273, 390],
+          "label_box_2d": [259, 212, 271, 283],
+          "confidence": 0.93
+        },
+        {
+          "id": "para",
+          "label": "Para",
+          "type": "number",
+          "required": false,
+          "box_2d": [259, 440, 273, 520],
+          "label_box_2d": [259, 400, 271, 438],
+          "confidence": 0.93
+        },
+        {
+          "id": "live_born",
+          "label": "Live Born",
+          "type": "number",
+          "required": false,
+          "box_2d": [259, 605, 273, 690],
+          "label_box_2d": [259, 530, 271, 603],
+          "confidence": 0.93
+        },
+        {
+          "id": "abortions",
+          "label": "Abortions",
+          "type": "number",
+          "required": false,
+          "box_2d": [259, 775, 273, 855],
+          "label_box_2d": [259, 700, 271, 773],
+          "confidence": 0.93
+        },
+        {
+          "id": "death",
+          "label": "Death",
+          "type": "number",
+          "required": false,
+          "box_2d": [259, 905, 273, 968],
+          "label_box_2d": [259, 865, 271, 903],
+          "confidence": 0.9
+        },
+        {
+          "id": "conception",
+          "label": "Conception",
+          "type": "radio",
+          "options": ["Spontaneous", "Artificial"],
+          "required": false,
+          "box_2d": [286, 140, 300, 330],
+          "label_box_2d": [286, 59, 297, 138],
+          "confidence": 0.94
+        },
+        {
+          "id": "conception_artificial_details",
+          "label": "Artificial conception details",
+          "type": "text",
+          "context": "blank line printed immediately after the word 'Artificial'",
+          "required": false,
+          "box_2d": [286, 340, 300, 610],
+          "confidence": 0.82
+        },
+        {
+          "id": "consanguinity",
+          "label": "Consanguinity",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [286, 725, 300, 792],
+          "label_box_2d": [286, 620, 297, 723],
+          "confidence": 0.96
+        },
+        {
+          "id": "lmp",
+          "label": "LMP",
+          "type": "date",
+          "required": false,
+          "box_2d": [312, 100, 326, 290],
+          "label_box_2d": [312, 59, 324, 98],
+          "confidence": 0.95
+        },
+        {
+          "id": "edd",
+          "label": "EDD",
+          "type": "date",
+          "required": true,
+          "box_2d": [312, 357, 326, 545],
+          "label_box_2d": [312, 300, 324, 355],
+          "confidence": 0.95
+        },
+        {
+          "id": "tetanus",
+          "label": "Tetanus",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [312, 630, 326, 755],
+          "label_box_2d": [312, 555, 324, 628],
+          "confidence": 0.95
+        }
+      ]
+    },
+    {
+      "id": "scans",
+      "title": "Scans",
+      "box_2d": [332, 50, 410, 975],
+      "fields": [
+        {
+          "id": "scan_edd",
+          "label": "EDD",
+          "type": "date",
+          "context": "EDD reported by scan",
+          "required": false,
+          "box_2d": [365, 125, 379, 430],
+          "label_box_2d": [365, 70, 377, 123],
+          "confidence": 0.92
+        },
+        {
+          "id": "any_malformations",
+          "label": "Any malformations",
+          "type": "text",
+          "required": false,
+          "box_2d": [365, 615, 379, 872],
+          "label_box_2d": [365, 450, 377, 613],
+          "confidence": 0.93
+        },
+        {
+          "id": "liquor",
+          "label": "Liquor",
+          "type": "text",
+          "required": false,
+          "box_2d": [391, 145, 405, 380],
+          "label_box_2d": [391, 70, 403, 143],
+          "confidence": 0.93
+        },
+        {
+          "id": "dopplers",
+          "label": "Dopplers",
+          "type": "text",
+          "required": false,
+          "box_2d": [391, 475, 405, 736],
+          "label_box_2d": [391, 395, 403, 473],
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "id": "any_h_o",
+      "title": "Any H/O",
+      "box_2d": [412, 50, 490, 975],
+      "fields": [
+        {
+          "id": "pih",
+          "label": "PIH",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [444, 110, 458, 195],
+          "label_box_2d": [444, 70, 456, 108],
+          "confidence": 0.95
+        },
+        {
+          "id": "gdm",
+          "label": "GDM",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [444, 290, 458, 375],
+          "label_box_2d": [444, 240, 456, 288],
+          "confidence": 0.95
+        },
+        {
+          "id": "aph",
+          "label": "APH",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [444, 455, 458, 540],
+          "label_box_2d": [444, 410, 456, 453],
+          "confidence": 0.95
+        },
+        {
+          "id": "uti_or_any_febrile_illness",
+          "label": "UTI or any febrile illness",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [470, 270, 484, 355],
+          "label_box_2d": [470, 70, 482, 268],
+          "confidence": 0.94
+        },
+        {
+          "id": "pprom",
+          "label": "PPROM",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [470, 460, 484, 554],
+          "label_box_2d": [470, 400, 482, 458],
+          "confidence": 0.94
+        }
+      ]
+    },
+    {
+      "id": "if_delivered_preterm",
+      "title": "If delivered preterm",
+      "box_2d": [492, 50, 594, 975],
+      "fields": [
+        {
+          "id": "reason_for_prematurity",
+          "label": "Reason for prematurity",
+          "type": "text",
+          "required": false,
+          "box_2d": [523, 235, 537, 871],
+          "label_box_2d": [523, 70, 535, 233],
+          "confidence": 0.94
+        },
+        {
+          "id": "antenatal_steroids",
+          "label": "Antenatal steroids",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [549, 220, 563, 305],
+          "label_box_2d": [549, 70, 561, 218],
+          "confidence": 0.95
+        },
+        {
+          "id": "magnesium_sulphate",
+          "label": "Magnesium sulphate",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [549, 605, 563, 690],
+          "label_box_2d": [549, 455, 561, 603],
+          "confidence": 0.95
+        },
+        {
+          "id": "antibiotics_for_pprom",
+          "label": "Antibiotics for PPROM",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [576, 250, 590, 335],
+          "label_box_2d": [576, 70, 588, 248],
+          "confidence": 0.95
+        },
+        {
+          "id": "delayed_cord_clamping",
+          "label": "Delayed cord clamping",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": false,
+          "box_2d": [576, 620, 590, 704],
+          "label_box_2d": [576, 450, 588, 618],
+          "confidence": 0.95
+        }
+      ]
+    },
+    {
+      "id": "delivery",
+      "title": "Delivery",
+      "box_2d": [596, 50, 652, 975],
+      "fields": [
+        {
+          "id": "mode_of_delivery",
+          "label": "Mode of delivery",
+          "type": "radio",
+          "options": ["NVD", "LSCS", "Vacuum", "Forceps"],
+          "required": false,
+          "box_2d": [602, 180, 616, 462],
+          "label_box_2d": [602, 59, 614, 178],
+          "confidence": 0.96
+        },
+        {
+          "id": "indication_for_lscs",
+          "label": "Indication for LSCS",
+          "type": "text",
+          "required": false,
+          "box_2d": [628, 220, 642, 900],
+          "label_box_2d": [628, 59, 640, 216],
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "id": "baby_details",
+      "title": "BABY DETAILS",
+      "box_2d": [655, 50, 800, 640],
+      "fields": [
+        {
+          "id": "date_of_birth",
+          "label": "Date of birth",
+          "type": "date",
+          "required": false,
+          "box_2d": [696, 165, 710, 335],
+          "label_box_2d": [696, 63, 708, 163],
+          "confidence": 0.97
+        },
+        {
+          "id": "time_of_birth",
+          "label": "Time of birth",
+          "type": "time",
+          "required": false,
+          "box_2d": [696, 458, 710, 574],
+          "label_box_2d": [696, 345, 708, 456],
+          "confidence": 0.97
+        },
+        {
+          "id": "sex",
+          "label": "Sex",
+          "type": "text",
+          "required": false,
+          "box_2d": [724, 115, 738, 265],
+          "label_box_2d": [724, 63, 736, 113],
+          "confidence": 0.96
+        },
+        {
+          "id": "gestation",
+          "label": "Gestation",
+          "type": "text",
+          "required": false,
+          "box_2d": [724, 378, 738, 570],
+          "label_box_2d": [724, 275, 736, 376],
+          "confidence": 0.95
+        },
+        {
+          "id": "weight",
+          "label": "Weight",
+          "type": "decimal",
+          "required": false,
+          "box_2d": [752, 128, 766, 240],
+          "label_box_2d": [752, 63, 764, 126],
+          "confidence": 0.96
+        },
+        {
+          "id": "length",
+          "label": "Length",
+          "type": "decimal",
+          "required": false,
+          "box_2d": [752, 323, 766, 430],
+          "label_box_2d": [752, 250, 764, 321],
+          "confidence": 0.95
+        },
+        {
+          "id": "hc",
+          "label": "HC",
+          "type": "decimal",
+          "required": false,
+          "box_2d": [752, 488, 766, 580],
+          "label_box_2d": [752, 440, 764, 486],
+          "confidence": 0.94
+        },
+        {
+          "id": "sga_aga_lga",
+          "label": "SGA / AGA / LGA",
+          "type": "radio",
+          "options": ["SGA", "AGA", "LGA"],
+          "required": false,
+          "box_2d": [780, 230, 794, 576],
+          "label_box_2d": [780, 63, 792, 190],
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "id": "resuscitation_details",
+      "title": "Resuscitation details",
+      "box_2d": [802, 50, 958, 640],
+      "fields": [
+        {
+          "id": "amniotic_fluid",
+          "label": "Amniotic fluid",
+          "type": "radio",
+          "options": ["Clear", "Meconium stained", "Foul smell"],
+          "required": false,
+          "box_2d": [842, 160, 856, 456],
+          "label_box_2d": [842, 61, 854, 158],
+          "confidence": 0.97
+        },
+        {
+          "id": "cried_immediately_after_birth",
+          "label": "Cried immediately after birth",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "required": true,
+          "box_2d": [873, 295, 887, 354],
+          "label_box_2d": [873, 61, 885, 293],
+          "confidence": 0.97
+        },
+        {
+          "id": "resuscitation",
+          "label": "Resuscitation",
+          "type": "boolean",
+          "options": ["Yes", "No"],
+          "context": "PPV, Intubation, Chest Compressions",
+          "required": true,
+          "box_2d": [903, 185, 917, 258],
+          "label_box_2d": [903, 61, 915, 183],
+          "confidence": 0.96
+        },
+        {
+          "id": "apgar_score_1_min",
+          "label": "APGAR score",
+          "type": "number",
+          "context": "at 1 min of life",
+          "required": false,
+          "box_2d": [934, 335, 948, 395],
+          "label_box_2d": [934, 62, 945, 330],
+          "related_field_ids": ["apgar_score_5_min", "apgar_score_10_min"],
+          "confidence": 0.94
+        },
+        {
+          "id": "apgar_score_5_min",
+          "label": "APGAR score",
+          "type": "number",
+          "context": "at 5 min of life",
+          "required": false,
+          "box_2d": [934, 405, 948, 470],
+          "related_field_ids": ["apgar_score_1_min", "apgar_score_10_min"],
+          "confidence": 0.94
+        },
+        {
+          "id": "apgar_score_10_min",
+          "label": "APGAR score",
+          "type": "number",
+          "context": "at 10 min of life",
+          "required": false,
+          "box_2d": [934, 480, 948, 560],
+          "related_field_ids": ["apgar_score_1_min", "apgar_score_5_min"],
+          "confidence": 0.94
+        }
+      ]
+    },
+    {
+      "id": "babys_foot_print",
+      "title": "Baby's Foot Print",
+      "box_2d": [648, 645, 958, 975],
+      "fields": [
+        {
+          "id": "babys_foot_print",
+          "label": "Baby's Foot Print",
+          "type": "textarea",
+          "context": "large blank area reserved for the footprint impression",
+          "required": false,
+          "box_2d": [672, 650, 955, 970],
+          "label_box_2d": [658, 706, 669, 831],
+          "confidence": 0.88
+        }
+      ]
+    }
+  ]
+}

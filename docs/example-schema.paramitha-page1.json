@@ -1,0 +1,1153 @@
+{
+  "formId": "form_example",
+  "title": "INITIAL ASSESSMENT FORM",
+  "documentName": "paramitha-initial-assessment.pdf",
+  "sourceMimeType": "application/pdf",
+  "pageCount": 4,
+  "analyzedPages": [
+    1
+  ],
+  "pages": [
+    {
+      "pageNumber": 1,
+      "dimensions": {
+        "width": 595.28,
+        "height": 841.89
+      },
+      "sections": [
+        {
+          "id": "patient_details",
+          "title": "Patient Details",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.098,
+            "width": 0.925,
+            "height": 0.084
+          },
+          "fields": [
+            {
+              "id": "name",
+              "label": "Name",
+              "type": "text",
+              "required": false,
+              "sectionId": "patient_details",
+              "bbox": {
+                "x": 0.19,
+                "y": 0.11,
+                "width": 0.41,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.98,
+              "labelBBox": {
+                "x": 0.058,
+                "y": 0.11,
+                "width": 0.129,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "registration_no",
+              "label": "Registration No.",
+              "type": "text",
+              "required": false,
+              "sectionId": "patient_details",
+              "bbox": {
+                "x": 0.19,
+                "y": 0.137,
+                "width": 0.41,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.97,
+              "labelBBox": {
+                "x": 0.058,
+                "y": 0.137,
+                "width": 0.13,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "father_name",
+              "label": "Father Name",
+              "type": "text",
+              "required": false,
+              "sectionId": "patient_details",
+              "bbox": {
+                "x": 0.19,
+                "y": 0.163,
+                "width": 0.41,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.97,
+              "labelBBox": {
+                "x": 0.058,
+                "y": 0.163,
+                "width": 0.131,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "hospital",
+              "label": "Hospital",
+              "type": "text",
+              "required": false,
+              "sectionId": "patient_details",
+              "bbox": {
+                "x": 0.682,
+                "y": 0.11,
+                "width": 0.283,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "labelBBox": {
+                "x": 0.609,
+                "y": 0.11,
+                "width": 0.07,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "obstetrician",
+              "label": "Obstetrician",
+              "type": "text",
+              "required": false,
+              "sectionId": "patient_details",
+              "bbox": {
+                "x": 0.712,
+                "y": 0.163,
+                "width": 0.253,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "labelBBox": {
+                "x": 0.609,
+                "y": 0.163,
+                "width": 0.099,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "antenatal_details",
+          "title": "Antenatal Details",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.196,
+            "width": 0.925,
+            "height": 0.134
+          },
+          "fields": [
+            {
+              "id": "mothers_age_at_conception",
+              "label": "Mother's age at conception",
+              "type": "number",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.292,
+                "y": 0.233,
+                "width": 0.441,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "unit": "years",
+              "labelBBox": {
+                "x": 0.059,
+                "y": 0.233,
+                "width": 0.231,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "mothers_blood_group",
+              "label": "Mother's Blood Group",
+              "type": "text",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.893,
+                "y": 0.233,
+                "width": 0.075,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "labelBBox": {
+                "x": 0.74,
+                "y": 0.233,
+                "width": 0.15,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "parity",
+              "label": "Parity",
+              "type": "number",
+              "required": true,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.118,
+                "y": 0.259,
+                "width": 0.087,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.059,
+                "y": 0.259,
+                "width": 0.057,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "gravida",
+              "label": "Gravida",
+              "type": "number",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.285,
+                "y": 0.259,
+                "width": 0.105,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.212,
+                "y": 0.259,
+                "width": 0.071,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "para",
+              "label": "Para",
+              "type": "number",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.44,
+                "y": 0.259,
+                "width": 0.08,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.4,
+                "y": 0.259,
+                "width": 0.038,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "live_born",
+              "label": "Live Born",
+              "type": "number",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.605,
+                "y": 0.259,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.53,
+                "y": 0.259,
+                "width": 0.073,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "abortions",
+              "label": "Abortions",
+              "type": "number",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.775,
+                "y": 0.259,
+                "width": 0.08,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.7,
+                "y": 0.259,
+                "width": 0.073,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "death",
+              "label": "Death",
+              "type": "number",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.905,
+                "y": 0.259,
+                "width": 0.063,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.9,
+              "labelBBox": {
+                "x": 0.865,
+                "y": 0.259,
+                "width": 0.038,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "conception",
+              "label": "Conception",
+              "type": "radio",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.14,
+                "y": 0.286,
+                "width": 0.19,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "options": [
+                "Spontaneous",
+                "Artificial"
+              ],
+              "labelBBox": {
+                "x": 0.059,
+                "y": 0.286,
+                "width": 0.079,
+                "height": 0.011
+              }
+            },
+            {
+              "id": "conception_artificial_details",
+              "label": "Artificial conception details",
+              "type": "text",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.34,
+                "y": 0.286,
+                "width": 0.27,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.82,
+              "context": "blank line printed immediately after the word 'Artificial'"
+            },
+            {
+              "id": "consanguinity",
+              "label": "Consanguinity",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.725,
+                "y": 0.286,
+                "width": 0.067,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "labelBBox": {
+                "x": 0.62,
+                "y": 0.286,
+                "width": 0.103,
+                "height": 0.011
+              }
+            },
+            {
+              "id": "lmp",
+              "label": "LMP",
+              "type": "date",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.1,
+                "y": 0.312,
+                "width": 0.19,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.059,
+                "y": 0.312,
+                "width": 0.039,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "edd",
+              "label": "EDD",
+              "type": "date",
+              "required": true,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.357,
+                "y": 0.312,
+                "width": 0.188,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.3,
+                "y": 0.312,
+                "width": 0.055,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "tetanus",
+              "label": "Tetanus",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "antenatal_details",
+              "bbox": {
+                "x": 0.63,
+                "y": 0.312,
+                "width": 0.125,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.555,
+                "y": 0.312,
+                "width": 0.073,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "scans",
+          "title": "Scans",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.332,
+            "width": 0.925,
+            "height": 0.078
+          },
+          "fields": [
+            {
+              "id": "scan_edd",
+              "label": "EDD",
+              "type": "date",
+              "required": false,
+              "sectionId": "scans",
+              "bbox": {
+                "x": 0.125,
+                "y": 0.365,
+                "width": 0.305,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.92,
+              "context": "EDD reported by scan",
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.365,
+                "width": 0.053,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "any_malformations",
+              "label": "Any malformations",
+              "type": "text",
+              "required": false,
+              "sectionId": "scans",
+              "bbox": {
+                "x": 0.615,
+                "y": 0.365,
+                "width": 0.257,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.45,
+                "y": 0.365,
+                "width": 0.163,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "liquor",
+              "label": "Liquor",
+              "type": "text",
+              "required": false,
+              "sectionId": "scans",
+              "bbox": {
+                "x": 0.145,
+                "y": 0.391,
+                "width": 0.235,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.391,
+                "width": 0.073,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "dopplers",
+              "label": "Dopplers",
+              "type": "text",
+              "required": false,
+              "sectionId": "scans",
+              "bbox": {
+                "x": 0.475,
+                "y": 0.391,
+                "width": 0.261,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.395,
+                "y": 0.391,
+                "width": 0.078,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "any_h_o",
+          "title": "Any H/O",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.412,
+            "width": 0.925,
+            "height": 0.078
+          },
+          "fields": [
+            {
+              "id": "pih",
+              "label": "PIH",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "any_h_o",
+              "bbox": {
+                "x": 0.11,
+                "y": 0.444,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.444,
+                "width": 0.038,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "gdm",
+              "label": "GDM",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "any_h_o",
+              "bbox": {
+                "x": 0.29,
+                "y": 0.444,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.24,
+                "y": 0.444,
+                "width": 0.048,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "aph",
+              "label": "APH",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "any_h_o",
+              "bbox": {
+                "x": 0.455,
+                "y": 0.444,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.41,
+                "y": 0.444,
+                "width": 0.043,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "uti_or_any_febrile_illness",
+              "label": "UTI or any febrile illness",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "any_h_o",
+              "bbox": {
+                "x": 0.27,
+                "y": 0.47,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.47,
+                "width": 0.198,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "pprom",
+              "label": "PPROM",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "any_h_o",
+              "bbox": {
+                "x": 0.46,
+                "y": 0.47,
+                "width": 0.094,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "labelBBox": {
+                "x": 0.4,
+                "y": 0.47,
+                "width": 0.058,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "if_delivered_preterm",
+          "title": "If delivered preterm",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.492,
+            "width": 0.925,
+            "height": 0.102
+          },
+          "fields": [
+            {
+              "id": "reason_for_prematurity",
+              "label": "Reason for prematurity",
+              "type": "text",
+              "required": false,
+              "sectionId": "if_delivered_preterm",
+              "bbox": {
+                "x": 0.235,
+                "y": 0.523,
+                "width": 0.636,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.523,
+                "width": 0.163,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "antenatal_steroids",
+              "label": "Antenatal steroids",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "if_delivered_preterm",
+              "bbox": {
+                "x": 0.22,
+                "y": 0.549,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.549,
+                "width": 0.148,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "magnesium_sulphate",
+              "label": "Magnesium sulphate",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "if_delivered_preterm",
+              "bbox": {
+                "x": 0.605,
+                "y": 0.549,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.455,
+                "y": 0.549,
+                "width": 0.148,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "antibiotics_for_pprom",
+              "label": "Antibiotics for PPROM",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "if_delivered_preterm",
+              "bbox": {
+                "x": 0.25,
+                "y": 0.576,
+                "width": 0.085,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.07,
+                "y": 0.576,
+                "width": 0.178,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "delayed_cord_clamping",
+              "label": "Delayed cord clamping",
+              "type": "boolean",
+              "required": false,
+              "sectionId": "if_delivered_preterm",
+              "bbox": {
+                "x": 0.62,
+                "y": 0.576,
+                "width": 0.084,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.45,
+                "y": 0.576,
+                "width": 0.168,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "delivery",
+          "title": "Delivery",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.596,
+            "width": 0.925,
+            "height": 0.056
+          },
+          "fields": [
+            {
+              "id": "mode_of_delivery",
+              "label": "Mode of delivery",
+              "type": "radio",
+              "required": false,
+              "sectionId": "delivery",
+              "bbox": {
+                "x": 0.18,
+                "y": 0.602,
+                "width": 0.282,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "options": [
+                "NVD",
+                "LSCS",
+                "Vacuum",
+                "Forceps"
+              ],
+              "labelBBox": {
+                "x": 0.059,
+                "y": 0.602,
+                "width": 0.119,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "indication_for_lscs",
+              "label": "Indication for LSCS",
+              "type": "text",
+              "required": false,
+              "sectionId": "delivery",
+              "bbox": {
+                "x": 0.22,
+                "y": 0.628,
+                "width": 0.68,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "labelBBox": {
+                "x": 0.059,
+                "y": 0.628,
+                "width": 0.157,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "baby_details",
+          "title": "BABY DETAILS",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.655,
+            "width": 0.59,
+            "height": 0.145
+          },
+          "fields": [
+            {
+              "id": "date_of_birth",
+              "label": "Date of birth",
+              "type": "date",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.165,
+                "y": 0.696,
+                "width": 0.17,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.97,
+              "labelBBox": {
+                "x": 0.063,
+                "y": 0.696,
+                "width": 0.1,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "time_of_birth",
+              "label": "Time of birth",
+              "type": "time",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.458,
+                "y": 0.696,
+                "width": 0.116,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.97,
+              "labelBBox": {
+                "x": 0.345,
+                "y": 0.696,
+                "width": 0.111,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "sex",
+              "label": "Sex",
+              "type": "text",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.115,
+                "y": 0.724,
+                "width": 0.15,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "labelBBox": {
+                "x": 0.063,
+                "y": 0.724,
+                "width": 0.05,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "gestation",
+              "label": "Gestation",
+              "type": "text",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.378,
+                "y": 0.724,
+                "width": 0.192,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.275,
+                "y": 0.724,
+                "width": 0.101,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "weight",
+              "label": "Weight",
+              "type": "decimal",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.128,
+                "y": 0.752,
+                "width": 0.112,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "labelBBox": {
+                "x": 0.063,
+                "y": 0.752,
+                "width": 0.063,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "length",
+              "label": "Length",
+              "type": "decimal",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.323,
+                "y": 0.752,
+                "width": 0.107,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.95,
+              "labelBBox": {
+                "x": 0.25,
+                "y": 0.752,
+                "width": 0.071,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "hc",
+              "label": "HC",
+              "type": "decimal",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.488,
+                "y": 0.752,
+                "width": 0.092,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "labelBBox": {
+                "x": 0.44,
+                "y": 0.752,
+                "width": 0.046,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "sga_aga_lga",
+              "label": "SGA / AGA / LGA",
+              "type": "radio",
+              "required": false,
+              "sectionId": "baby_details",
+              "bbox": {
+                "x": 0.23,
+                "y": 0.78,
+                "width": 0.346,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.93,
+              "options": [
+                "SGA",
+                "AGA",
+                "LGA"
+              ],
+              "labelBBox": {
+                "x": 0.063,
+                "y": 0.78,
+                "width": 0.127,
+                "height": 0.012
+              }
+            }
+          ]
+        },
+        {
+          "id": "resuscitation_details",
+          "title": "Resuscitation details",
+          "bbox": {
+            "x": 0.05,
+            "y": 0.802,
+            "width": 0.59,
+            "height": 0.156
+          },
+          "fields": [
+            {
+              "id": "amniotic_fluid",
+              "label": "Amniotic fluid",
+              "type": "radio",
+              "required": false,
+              "sectionId": "resuscitation_details",
+              "bbox": {
+                "x": 0.16,
+                "y": 0.842,
+                "width": 0.296,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.97,
+              "options": [
+                "Clear",
+                "Meconium stained",
+                "Foul smell"
+              ],
+              "labelBBox": {
+                "x": 0.061,
+                "y": 0.842,
+                "width": 0.097,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "cried_immediately_after_birth",
+              "label": "Cried immediately after birth",
+              "type": "boolean",
+              "required": true,
+              "sectionId": "resuscitation_details",
+              "bbox": {
+                "x": 0.295,
+                "y": 0.873,
+                "width": 0.059,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.97,
+              "labelBBox": {
+                "x": 0.061,
+                "y": 0.873,
+                "width": 0.232,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "resuscitation",
+              "label": "Resuscitation",
+              "type": "boolean",
+              "required": true,
+              "sectionId": "resuscitation_details",
+              "bbox": {
+                "x": 0.185,
+                "y": 0.903,
+                "width": 0.073,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.96,
+              "context": "PPV, Intubation, Chest Compressions",
+              "labelBBox": {
+                "x": 0.061,
+                "y": 0.903,
+                "width": 0.122,
+                "height": 0.012
+              }
+            },
+            {
+              "id": "apgar_score_1_min",
+              "label": "APGAR score",
+              "type": "number",
+              "required": false,
+              "sectionId": "resuscitation_details",
+              "bbox": {
+                "x": 0.335,
+                "y": 0.934,
+                "width": 0.06,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "context": "at 1 min of life",
+              "labelBBox": {
+                "x": 0.062,
+                "y": 0.934,
+                "width": 0.268,
+                "height": 0.011
+              },
+              "relatedFieldIds": [
+                "apgar_score_5_min",
+                "apgar_score_10_min"
+              ]
+            },
+            {
+              "id": "apgar_score_5_min",
+              "label": "APGAR score",
+              "type": "number",
+              "required": false,
+              "sectionId": "resuscitation_details",
+              "bbox": {
+                "x": 0.405,
+                "y": 0.934,
+                "width": 0.065,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "context": "at 5 min of life",
+              "relatedFieldIds": [
+                "apgar_score_1_min",
+                "apgar_score_10_min"
+              ]
+            },
+            {
+              "id": "apgar_score_10_min",
+              "label": "APGAR score",
+              "type": "number",
+              "required": false,
+              "sectionId": "resuscitation_details",
+              "bbox": {
+                "x": 0.48,
+                "y": 0.934,
+                "width": 0.08,
+                "height": 0.014
+              },
+              "detectionConfidence": 0.94,
+              "context": "at 10 min of life",
+              "relatedFieldIds": [
+                "apgar_score_1_min",
+                "apgar_score_5_min"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "babys_foot_print",
+          "title": "Baby's Foot Print",
+          "bbox": {
+            "x": 0.645,
+            "y": 0.648,
+            "width": 0.33,
+            "height": 0.31
+          },
+          "fields": [
+            {
+              "id": "babys_foot_print",
+              "label": "Baby's Foot Print",
+              "type": "textarea",
+              "required": false,
+              "sectionId": "babys_foot_print",
+              "bbox": {
+                "x": 0.65,
+                "y": 0.672,
+                "width": 0.32,
+                "height": 0.283
+              },
+              "detectionConfidence": 0.88,
+              "context": "large blank area reserved for the footprint impression",
+              "labelBBox": {
+                "x": 0.706,
+                "y": 0.658,
+                "width": 0.125,
+                "height": 0.011
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-08-12T09:15:00.000Z",
+  "analysisModel": "gemini-2.5-pro"
+}
