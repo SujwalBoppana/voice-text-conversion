@@ -1,15 +1,21 @@
 /**
  * Page analysis: uploaded document -> FormSchema.
  *
- * One model call per page, cached on the document's content hash. The MVP calls
- * this with `[1]`; the loop over pages is already here, so enabling pages 2..n
- * is a config change (`MAX_ANALYZED_PAGES`), not a rewrite.
+ * One model call per page, run concurrently and cached on the document's content
+ * hash. How many leading pages are analyzed is `MAX_ANALYZED_PAGES`; everything
+ * downstream is keyed by page number, so that number is the only thing that
+ * changes when the scope widens.
  */
 import type { FormSchema, PageSchema } from '@formfill/shared';
 import { config } from '../config.js';
 import type { RequestContext } from '../lib/apiKey.js';
 import { AppError } from '../lib/errors.js';
-import { analysisPayloadSchema, newFormId, normalizePage } from '../lib/normalize.js';
+import {
+  analysisPayloadSchema,
+  dedupeIdsAcrossPages,
+  newFormId,
+  normalizePage,
+} from '../lib/normalize.js';
 import {
   ANALYSIS_SYSTEM_INSTRUCTION,
   analysisResponseSchema,
@@ -52,26 +58,41 @@ export async function analyzeDocument(
   let cachedAll = true;
   const usage: Usage = { model: config.mockGemini ? 'mock' : ctx.analysisModel, latencyMs: 0, promptTokens: 0, responseTokens: 0, totalTokens: 0 };
 
-  for (const page of ingested.pages) {
-    const key = analysisCacheKey(hash, page.pageNumber, ctx.analysisModel);
-    const cached = getCachedAnalysis(key);
-    if (cached) {
-      pages.push(cached.schemaPage);
-      title ||= cached.title;
-      continue;
-    }
-    cachedAll = false;
+  // Pages are independent, so they are analyzed concurrently: two pages cost
+  // twice the tokens but roughly the same wall-clock time as one, which is what
+  // keeps a multi-page scope usable. Cache hits never reach the model at all.
+  const started = Date.now();
+  const analyzed = await Promise.all(
+    ingested.pages.map(async (page) => {
+      const key = analysisCacheKey(hash, page.pageNumber, ctx.analysisModel);
+      // Clones, because ids are rewritten below for cross-page uniqueness and
+      // that must not reach back into the cached copy — a second upload would
+      // otherwise see already-suffixed ids and suffix them again.
+      const cached = getCachedAnalysis(key);
+      if (cached) {
+        return { page: structuredClone(cached.schemaPage), title: cached.title, usage: null };
+      }
 
-    const analyzed = await analyzePage(page, opts.filename, ctx);
-    usage.latencyMs += analyzed.usage.latencyMs;
-    usage.promptTokens = (usage.promptTokens ?? 0) + (analyzed.usage.promptTokens ?? 0);
-    usage.responseTokens = (usage.responseTokens ?? 0) + (analyzed.usage.responseTokens ?? 0);
-    usage.totalTokens = (usage.totalTokens ?? 0) + (analyzed.usage.totalTokens ?? 0);
+      cachedAll = false;
+      const result = await analyzePage(page, opts.filename, ctx);
+      setCachedAnalysis(key, { schemaPage: structuredClone(result.page), title: result.title });
+      return result;
+    }),
+  );
 
-    pages.push(analyzed.page);
-    title ||= analyzed.title;
-    setCachedAnalysis(key, { schemaPage: analyzed.page, title: analyzed.title });
+  for (const result of analyzed.sort((a, b) => a.page.pageNumber - b.page.pageNumber)) {
+    pages.push(result.page);
+    title ||= result.title;
+    if (!result.usage) continue;
+    usage.promptTokens = (usage.promptTokens ?? 0) + (result.usage.promptTokens ?? 0);
+    usage.responseTokens = (usage.responseTokens ?? 0) + (result.usage.responseTokens ?? 0);
+    usage.totalTokens = (usage.totalTokens ?? 0) + (result.usage.totalTokens ?? 0);
   }
+  // Wall-clock, not the sum of the calls — they overlapped.
+  usage.latencyMs = cachedAll ? 0 : Date.now() - started;
+
+  // Ids must be unique across the document, not just within a page.
+  dedupeIdsAcrossPages(pages);
 
   const schema: FormSchema = {
     formId: newFormId(),

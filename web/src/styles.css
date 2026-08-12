@@ -884,3 +884,33 @@ button:focus-visible, [role='button']:focus-visible, a:focus-visible, select:foc
 .progress-bar.wide span { background: var(--accent); }
 
 .finder-context { color: var(--muted); font-style: italic; font-size: 11px; margin-left: 6px; }
+
+/* ------------------------------ page switcher ----------------------------- */
+
+.pages { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+
+.page-tab {
+  border: 0;
+  background: #fff;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.page-tab + .page-tab { border-left: 1px solid var(--line); }
+.page-tab:hover { background: #f7f9fb; color: var(--ink); }
+.page-tab.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+.page-tab .dot.warn { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); }
+.page-tab.active .dot.warn { background: #fff; }
+
+.finder-page {
+  display: inline-block;
+  background: #eef1f5;
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-right: 5px;
+  font-size: 10px;
+}

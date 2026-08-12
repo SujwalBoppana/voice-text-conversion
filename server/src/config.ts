@@ -41,8 +41,15 @@ export const config = {
   /** Serve fixtures instead of calling Gemini. For UI work and offline demos. */
   mockGemini: bool(process.env.MOCK_GEMINI, false),
 
-  /** Only page 1 is analyzed in the MVP; raise this to widen the window. */
-  maxAnalyzedPages: int(process.env.MAX_ANALYZED_PAGES, 1),
+  /**
+   * How many leading pages of an upload to analyze.
+   *
+   * Each page is one model call, so this is the main cost/coverage dial. The
+   * pipeline is page-keyed end to end — schema, state, assets, cache, extraction
+   * and the UI switcher all take a page number — so raising it needs no other
+   * change.
+   */
+  maxAnalyzedPages: Math.max(1, int(process.env.MAX_ANALYZED_PAGES, 2)),
 
   maxUploadBytes: int(process.env.MAX_UPLOAD_BYTES, 25 * 1024 * 1024),
   maxCatalogFields: int(process.env.MAX_CATALOG_FIELDS, 120),

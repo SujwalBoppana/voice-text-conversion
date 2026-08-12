@@ -8,9 +8,9 @@
  */
 import { z } from 'zod';
 import {
+  analyzedFields,
   applyUpdates,
   buildFieldCatalog,
-  fieldsOfPage,
   isLikelyRelevant,
   recentMessages,
   type ExtractionResponse,
@@ -44,15 +44,16 @@ const extractionPayloadSchema = z.object({
 /** Fields touched in the last few minutes stay in the catalogue so corrections land. */
 const PIN_WINDOW_MS = 5 * 60 * 1000;
 
-function pinnedFieldIds(record: FormRecord, pageNumber: number, now: number): string[] {
-  const page = record.state.pages[pageNumber] ?? {};
-  return Object.entries(page)
-    .filter(([, fs]) => {
-      if (fs.pending) return true; // unresolved conflict / clarification
-      if (!fs.lastUpdated) return false;
-      return now - Date.parse(fs.lastUpdated) < PIN_WINDOW_MS;
-    })
-    .map(([id]) => id);
+function pinnedFieldIds(record: FormRecord, pageNumbers: number[], now: number): string[] {
+  return pageNumbers.flatMap((pageNumber) =>
+    Object.entries(record.state.pages[pageNumber] ?? {})
+      .filter(([, fs]) => {
+        if (fs.pending) return true; // unresolved conflict / clarification
+        if (!fs.lastUpdated) return false;
+        return now - Date.parse(fs.lastUpdated) < PIN_WINDOW_MS;
+      })
+      .map(([id]) => id),
+  );
 }
 
 export async function runExtraction(
@@ -62,8 +63,16 @@ export async function runExtraction(
   ctx: RequestContext,
 ): Promise<ExtractionResponse> {
   const now = new Date();
-  const fields = fieldsOfPage(record.schema, pageNumber);
+
+  // Extraction spans every analyzed page, not just the one being viewed: a
+  // speaker describing a case has no idea which page a field was printed on.
+  // `pageNumber` still marks where the user is, for the reply and for pinning.
+  const pageNumbers = record.schema.analyzedPages;
+  const fields = analyzedFields(record.schema);
   if (!fields.length) {
+    throw new AppError('PAGE_NOT_ANALYZED', 'No page of this document has been analyzed.', 400);
+  }
+  if (!pageNumbers.includes(pageNumber)) {
     throw new AppError('PAGE_NOT_ANALYZED', `Page ${pageNumber} has not been analyzed.`, 400);
   }
 
@@ -81,9 +90,9 @@ export async function runExtraction(
   }
 
   const catalog = buildFieldCatalog(record.schema, record.state, {
-    pageNumber,
+    pageNumbers,
     maxFields: config.maxCatalogFields,
-    pinned: pinnedFieldIds(record, pageNumber, now.getTime()),
+    pinned: pinnedFieldIds(record, pageNumbers, now.getTime()),
   });
 
   if (!catalog.length) {
@@ -92,7 +101,7 @@ export async function runExtraction(
       applied: [],
       pending: [],
       rejected: [],
-      reply: 'Every field on this page already has a value — edit one directly to change it.',
+      reply: 'Every field already has a value — edit one directly to change it.',
       skipped: true,
     };
   }
@@ -180,7 +189,7 @@ export async function runExtraction(
 }
 
 function defaultReply(applied: number, pending: number): string {
-  if (!applied && !pending) return 'Nothing in that mapped to a field on this page.';
+  if (!applied && !pending) return 'Nothing in that mapped to a field on this form.';
   const parts: string[] = [];
   if (applied) parts.push(`Recorded ${applied} field${applied === 1 ? '' : 's'}.`);
   if (pending) parts.push(`${pending} need${pending === 1 ? 's' : ''} your confirmation.`);

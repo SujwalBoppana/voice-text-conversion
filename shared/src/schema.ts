@@ -19,6 +19,13 @@ export function fieldsOfPage(schema: FormSchema, pageNumber: number): FormField[
   return pageOf(schema, pageNumber)?.sections.flatMap((s) => s.fields) ?? [];
 }
 
+/** Every field on the pages that were actually analyzed. */
+export function analyzedFields(schema: FormSchema): Array<FormField & { pageNumber: number }> {
+  return schema.analyzedPages.flatMap((pageNumber) =>
+    fieldsOfPage(schema, pageNumber).map((field) => ({ ...field, pageNumber })),
+  );
+}
+
 export function allFields(schema: FormSchema): Array<FormField & { pageNumber: number }> {
   return schema.pages.flatMap((page) =>
     page.sections.flatMap((section) =>
@@ -86,7 +93,13 @@ export interface CatalogField {
 }
 
 export interface CatalogOptions {
-  pageNumber: number;
+  /**
+   * Pages to draw fields from — normally every analyzed page, not just the one
+   * on screen. A speaker describing a case does not know which page a field was
+   * printed on, so extraction searches the whole analyzed document and the UI
+   * follows the value to its page.
+   */
+  pageNumbers: number[];
   /** Cap on fields sent. Empty fields are kept first. */
   maxFields?: number;
   /** Ids to always include (e.g. fields touched in the last few turns). */
@@ -107,21 +120,31 @@ export function buildFieldCatalog(
   state: FormState,
   opts: CatalogOptions,
 ): CatalogField[] {
-  const { pageNumber, maxFields = 120, pinned = [] } = opts;
-  const page = pageOf(schema, pageNumber);
-  if (!page) return [];
+  const { pageNumbers, maxFields = 120, pinned = [] } = opts;
 
-  const entries: Array<{ field: FormField; section: string; filled: boolean; pinned: boolean }> = [];
-  for (const section of page.sections) {
-    for (const field of section.fields) {
-      if (field.type === 'table') continue; // not conversation-fillable
-      const fs = state.pages[pageNumber]?.[field.id];
-      entries.push({
-        field,
-        section: section.title,
-        filled: fs?.value !== null && fs?.value !== undefined,
-        pinned: pinned.includes(field.id),
-      });
+  const entries: Array<{
+    field: FormField;
+    section: string;
+    pageNumber: number;
+    filled: boolean;
+    pinned: boolean;
+  }> = [];
+
+  for (const pageNumber of pageNumbers) {
+    const page = pageOf(schema, pageNumber);
+    if (!page) continue;
+    for (const section of page.sections) {
+      for (const field of section.fields) {
+        if (field.type === 'table') continue; // not conversation-fillable
+        const fs = state.pages[pageNumber]?.[field.id];
+        entries.push({
+          field,
+          section: section.title,
+          pageNumber,
+          filled: fs?.value !== null && fs?.value !== undefined,
+          pinned: pinned.includes(field.id),
+        });
+      }
     }
   }
 
@@ -132,7 +155,7 @@ export function buildFieldCatalog(
 
   const selected = entries.filter((e) => !e.filled || e.pinned).slice(0, maxFields);
 
-  return selected.map(({ field, section, filled }) => {
+  return selected.map(({ field, section, pageNumber, filled }) => {
     const fs = state.pages[pageNumber]?.[field.id];
     const out: CatalogField = {
       id: field.id,

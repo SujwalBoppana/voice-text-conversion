@@ -36,8 +36,8 @@ export interface Toast {
 
 /** What one conversation turn did, shown as chips under the reply. */
 export interface TurnResult {
-  applied: Array<{ fieldId: string; label: string }>;
-  pending: Array<{ fieldId: string; label: string }>;
+  applied: Array<{ fieldId: string; label: string; pageNumber: number }>;
+  pending: Array<{ fieldId: string; label: string; pageNumber: number }>;
   rejected: Array<{ fieldId: string; reason: string }>;
   skipped: boolean;
 }
@@ -153,7 +153,11 @@ export class FormSession {
           status: fraction >= 1 ? 'analyzing' : 'uploading',
         });
       });
-      const fieldCount = result.schema.pages[0]?.sections.flatMap((s) => s.fields).length ?? 0;
+      const fieldCount = result.schema.pages.reduce(
+        (n, page) => n + page.sections.reduce((m, section) => m + section.fields.length, 0),
+        0,
+      );
+      const pageCount = result.schema.analyzedPages.length;
       this.set({
         schema: result.schema,
         state: result.state,
@@ -173,9 +177,9 @@ export class FormSession {
       history.replaceState(null, '', `#${result.schema.formId}`);
       this.toast(
         'success',
-        `Read ${fieldCount} field${fieldCount === 1 ? '' : 's'} from page 1${
-          result.usage?.cached ? ' (from cache)' : ''
-        }.`,
+        `Read ${fieldCount} field${fieldCount === 1 ? '' : 's'} from ${
+          pageCount === 1 ? 'page 1' : `${pageCount} pages`
+        }${result.usage?.cached ? ' (from cache)' : ''}.`,
       );
     } catch (error) {
       this.set({ uploadProgress: null, uploadingName: null });
@@ -235,8 +239,31 @@ export class FormSession {
     this.set({ mode });
   }
 
-  focusField(fieldId: string | null): void {
+  /**
+   * Scroll to a field, switching page first when it lives on another one — the
+   * conversation fills the whole document, so a value can land off-screen.
+   */
+  focusField(fieldId: string | null, pageNumber?: number): void {
+    if (pageNumber && pageNumber !== this.snapshot.pageNumber) {
+      this.set({ pageNumber, focusFieldId: fieldId });
+      return;
+    }
     this.set({ focusFieldId: fieldId });
+  }
+
+  setPage(pageNumber: number): void {
+    if (!this.snapshot.schema?.analyzedPages.includes(pageNumber)) return;
+    this.set({ pageNumber, focusFieldId: null });
+  }
+
+  /** Which analyzed page a field sits on. */
+  pageOfField(fieldId: string): number {
+    for (const page of this.snapshot.schema?.pages ?? []) {
+      for (const section of page.sections) {
+        if (section.fields.some((f) => f.id === fieldId)) return page.pageNumber;
+      }
+    }
+    return this.snapshot.pageNumber;
   }
 
   clearKeyProblem(): void {
@@ -321,15 +348,26 @@ export class FormSession {
         dirty: applied.length > 0 || pending.length > 0 || this.snapshot.dirty,
         lastUsage: result.extraction.usage ?? null,
         justUpdated: touched,
-        // Scroll to the first thing that needs a decision, else the first fill.
+        // Scroll to the first thing that needs a decision, else the first fill,
+        // switching page when that value landed on another one.
         focusFieldId: pending[0]?.fieldId ?? applied[0]?.fieldId ?? null,
+        pageNumber:
+          pending[0]?.pageNumber ?? applied[0]?.pageNumber ?? this.snapshot.pageNumber,
         messages: assistant ? [...this.snapshot.messages, assistant] : this.snapshot.messages,
         turnResults: assistant
           ? {
               ...this.snapshot.turnResults,
               [assistant.id]: {
-                applied: applied.map((u) => ({ fieldId: u.fieldId, label: this.labelOf(u.fieldId) })),
-                pending: pending.map((u) => ({ fieldId: u.fieldId, label: this.labelOf(u.fieldId) })),
+                applied: applied.map((u) => ({
+                  fieldId: u.fieldId,
+                  label: this.labelOf(u.fieldId),
+                  pageNumber: u.pageNumber,
+                })),
+                pending: pending.map((u) => ({
+                  fieldId: u.fieldId,
+                  label: this.labelOf(u.fieldId),
+                  pageNumber: u.pageNumber,
+                })),
                 rejected: rejected.map((r) => ({ fieldId: r.fieldId, reason: r.reason })),
                 skipped: result.extraction.skipped,
               },
@@ -425,7 +463,14 @@ export class FormSession {
   /* -------------------------------- internals ----------------------------- */
 
   private fieldLabels(): string[] {
-    return this.page()?.sections.flatMap((s) => s.fields.map((f) => f.label)) ?? [];
+    const schema = this.snapshot.schema;
+    if (!schema) return [];
+    return schema.analyzedPages.flatMap(
+      (n) =>
+        schema.pages
+          .find((p) => p.pageNumber === n)
+          ?.sections.flatMap((s) => s.fields.map((f) => f.label)) ?? [],
+    );
   }
 
   private page() {
@@ -433,9 +478,11 @@ export class FormSession {
   }
 
   private labelOf(fieldId: string): string {
-    for (const section of this.page()?.sections ?? []) {
-      const field = section.fields.find((f) => f.id === fieldId);
-      if (field) return field.label;
+    for (const page of this.snapshot.schema?.pages ?? []) {
+      for (const section of page.sections) {
+        const field = section.fields.find((f) => f.id === fieldId);
+        if (field) return field.label;
+      }
     }
     return fieldId;
   }

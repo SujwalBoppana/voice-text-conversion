@@ -11,7 +11,7 @@ interface Props {
   modelLabel: string;
   onSay: (text: string) => void;
   onFlush: () => void;
-  onJumpToField: (fieldId: string) => void;
+  onJumpToField: (fieldId: string, pageNumber: number) => void;
 }
 
 const EXAMPLES = [
@@ -84,7 +84,7 @@ export function ConversationPanel({
                     <button
                       key={f.fieldId}
                       className="chip filled"
-                      onClick={() => onJumpToField(f.fieldId)}
+                      onClick={() => onJumpToField(f.fieldId, f.pageNumber)}
                       title="Go to this field"
                     >
                       ✓ {f.label}
@@ -94,7 +94,7 @@ export function ConversationPanel({
                     <button
                       key={f.fieldId}
                       className="chip pending"
-                      onClick={() => onJumpToField(f.fieldId)}
+                      onClick={() => onJumpToField(f.fieldId, f.pageNumber)}
                       title="Needs your decision"
                     >
                       ⚠ {f.label}

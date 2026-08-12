@@ -147,8 +147,9 @@ curl -s localhost:4000/api/health
 
 ## `POST /api/forms`
 
-Upload a document. Extracts page 1, analyzes it, returns the generated schema and
-an empty state. **This is the only endpoint that sends the document to a model.**
+Upload a document. Extracts the leading pages (`MAX_ANALYZED_PAGES`, default 2),
+analyzes them concurrently, and returns the generated schema and an empty state.
+**This is the only endpoint that sends the document to a model.**
 
 ```bash
 curl -s -X POST localhost:4000/api/forms \
@@ -167,7 +168,7 @@ curl -s -X POST localhost:4000/api/forms \
     "documentName": "paramitha-initial-assessment.pdf",
     "sourceMimeType": "application/pdf",
     "pageCount": 4,            // the document has 4 pages …
-    "analyzedPages": [1],      // … only page 1 was processed
+    "analyzedPages": [1, 2],   // … the first 2 were processed (MAX_ANALYZED_PAGES)
     "analysisModel": "gemini-2.5-pro",
     "createdAt": "2026-08-12T09:15:00.000Z",
     "pages": [

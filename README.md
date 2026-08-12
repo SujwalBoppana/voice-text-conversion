@@ -1,7 +1,7 @@
 # Dynamic form autofill
 
 Upload **any** form — a scanned clinic sheet, an onboarding pack, an account
-opening form. Gemini reads page 1 visually, the page becomes an editable digital
+opening form. Gemini reads the pages visually, they become an editable digital
 form that keeps the original layout, and dictating the case fills the fields.
 
 The application has **no built-in knowledge of any form**. There is no
@@ -11,7 +11,7 @@ validators and state machinery. A different document tomorrow needs zero code
 changes.
 
 ```
-        ANY FORM ──► page 1 ──► Gemini vision ──► JSON schema ──► dynamic UI
+        ANY FORM ──► pages ──► Gemini vision ──► JSON schema ──► dynamic UI
                                                         │
                         conversation ──► gate ──► Gemini extraction ──► validate
                                                         │
@@ -97,12 +97,16 @@ MOCK_GEMINI=true npm run dev
 
 Mock mode renders the sample form regardless of what you upload (it is a
 fixture), and its stand-in extractor is a crude keyword matcher — deliberately
-much dumber than the real model. It is for UI work and offline demos.
+much dumber than the real model. Because the fixture is a captured *page 1*
+response, every analyzed page renders the same fields (distinguished by the
+`_p2` id suffix), which is useful for exercising the page switcher but is not
+what a real two-page form looks like. It is for UI work and offline demos.
 
 Other commands:
 
 ```bash
-npm test          # validation, conflict, gate and layout unit tests
+npm test          # 14 unit tests: validation, conflicts, gate, layout,
+                  # id uniqueness across pages, box conversion, type repair
 npm run build     # typecheck + build all three workspaces
 npm start         # run the built server
 ```
@@ -110,7 +114,7 @@ npm start         # run the built server
 ## Test it with the attached PDF
 
 The document is committed at `samples/paramitha-initial-assessment.pdf` (4 pages;
-**only page 1 is processed**, as specified for the MVP).
+**the first 2 are processed** by default — see `MAX_ANALYZED_PAGES`).
 
 **In the UI:** add your key in Settings, drop the PDF on the upload screen, wait
 for the analysis, then paste into the conversation panel:
@@ -126,13 +130,17 @@ Fields fill and are badged `auto`. Then try each guard:
 | `Mother's age at conception is about 30.` | **Not** filled — hedged speech parks as *needs clarification* |
 | `Correction, the weight is 2.6 kg.` | **Conflict** — the old value stays until you choose |
 | `The amniotic fluid was greenish.` | Rejected — not one of the printed choices |
-| `Start him on ampicillin.` | Dropped — page 1 has no such field |
+| `Start him on ampicillin.` | Dropped — the form has no such field |
 | `ok thanks` | Gated locally — no API call at all |
 
 Each reply carries chips for the fields it touched — click one to jump straight
-to that field. The toolbar shows live progress and a **to review** button that
-walks you through anything awaiting a decision. Press **⌘K** to jump to any field
-by name. Switch to **Original** to see the same live fields overlaid on the real
+to that field, switching page if it landed on the other one. The toolbar shows
+live progress across both pages and a **to review** button that walks you through
+anything awaiting a decision.
+
+Press **⌘K** to jump to any field by name, on either page. The **Page 1 /
+Page 2** tabs switch pages, and a dot on a tab marks something there needing
+review. Switch to **Original** to see the same live fields overlaid on the real
 page (Mode B). Every field is editable by hand; a hand-edited field can never be
 silently overwritten.
 
@@ -240,13 +248,25 @@ not by file extension. Encrypted and malformed PDFs, empty pages and pages where
 no field was found each get their own status and message. Manual edits roll back
 in the UI if the write fails.
 
-## Scope: page 1 only
+## Page scope
 
-As specified, exactly one page is analyzed. The data model is page-aware
-throughout — `schema.pages[]`, `state.pages[pageNumber][fieldId]`, per-page
-assets, a page-keyed analysis cache, and an ingest function that takes a list of
-page numbers. Widening to pages 2–4 is `MAX_ANALYZED_PAGES=4` plus a page
-switcher in the UI. No migration, no redesign.
+`MAX_ANALYZED_PAGES` decides how many leading pages are read. It ships at **2**.
+Each page is one model call and the calls run **concurrently**, so widening the
+scope costs tokens rather than wall-clock time. Documents with fewer pages are
+unaffected.
+
+Everything is keyed by page number — `schema.pages[]`,
+`state.pages[pageNumber][fieldId]`, per-page assets, a per-page analysis cache,
+and the UI's page tabs — so that number is the only thing to change.
+
+Two consequences worth knowing:
+
+- **Field ids are unique across the document**, not only within a page. A form
+  that prints "Name" on every page would otherwise have every page's value land
+  on the first one; later duplicates are suffixed (`name_p2`).
+- **Conversation fills the whole document, not just the page on screen.**
+  Extraction searches every analyzed page, and when a value lands on another page
+  the UI follows it there. Progress, the review count and ⌘K all span pages.
 
 ## Settings, in the app
 
@@ -286,7 +306,7 @@ See [`.env.example`](.env.example). The essentials:
 | `GEMINI_ANALYSIS_MODEL` | `gemini-2.5-pro` | once per page; the hard visual task |
 | `GEMINI_EXTRACTION_MODEL` | `gemini-2.5-flash` | every turn; in the critical path |
 | `GEMINI_EXTRACTION_THINKING_BUDGET` | `0` | thinking off for latency |
-| `MAX_ANALYZED_PAGES` | `1` | MVP scope |
+| `MAX_ANALYZED_PAGES` | `2` | leading pages read per upload; one model call each, run in parallel |
 | `MOCK_GEMINI` | `false` | offline fixture mode |
 
 Uses the official **`@google/genai`** SDK (v2) with multimodal input and

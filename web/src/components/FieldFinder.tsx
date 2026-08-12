@@ -13,7 +13,7 @@ interface Props {
   schema: FormSchema;
   state: FormState;
   pageNumber: number;
-  onPick: (fieldId: string) => void;
+  onPick: (fieldId: string, pageNumber: number) => void;
   onClose: () => void;
 }
 
@@ -24,6 +24,7 @@ interface Row {
       three fields that share a label. */
   context: string;
   section: string;
+  pageNumber: number;
   status: string;
   filled: boolean;
   needsReview: boolean;
@@ -35,33 +36,43 @@ export function FieldFinder({ schema, state, pageNumber, onPick, onClose }: Prop
   const input = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  const rows = useMemo<Row[]>(() => {
-    const page = schema.pages.find((p) => p.pageNumber === pageNumber);
-    const values = state.pages[pageNumber] ?? {};
-    return (
-      page?.sections.flatMap((section) =>
-        section.fields.map((field) => {
-          const fs = values[field.id];
-          return {
-            id: field.id,
-            label: field.label,
-            context: field.context ?? '',
-            section: section.title,
-            status: fs?.status ?? 'missing',
-            filled: fs?.value !== null && fs?.value !== undefined,
-            needsReview: Boolean(fs?.pending),
-          };
-        }),
-      ) ?? []
-    );
-  }, [schema, state, pageNumber]);
+  // Every analyzed page, not just the one on screen: the finder is how you get
+  // to a field, so it would be useless if it could only find half of them.
+  const rows = useMemo<Row[]>(
+    () =>
+      schema.analyzedPages.flatMap((page) => {
+        const values = state.pages[page] ?? {};
+        return (
+          schema.pages
+            .find((p) => p.pageNumber === page)
+            ?.sections.flatMap((section) =>
+              section.fields.map((field) => {
+                const fs = values[field.id];
+                return {
+                  id: field.id,
+                  label: field.label,
+                  context: field.context ?? '',
+                  section: section.title,
+                  pageNumber: page,
+                  status: fs?.status ?? 'missing',
+                  filled: fs?.value !== null && fs?.value !== undefined,
+                  needsReview: Boolean(fs?.pending),
+                };
+              }),
+            ) ?? []
+        );
+      }),
+    [schema, state],
+  );
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) {
-      // With no query, lead with anything awaiting a decision, then empties.
+      // With no query, lead with anything awaiting a decision, then empties,
+      // preferring the page being viewed within each group.
       return [...rows].sort((a, b) => {
-        const rank = (r: Row) => (r.needsReview ? 0 : r.filled ? 2 : 1);
+        const rank = (r: Row) =>
+          (r.needsReview ? 0 : r.filled ? 2 : 1) * 2 + (r.pageNumber === pageNumber ? 0 : 1);
         return rank(a) - rank(b);
       });
     }
@@ -74,7 +85,7 @@ export function FieldFinder({ schema, state, pageNumber, onPick, onClose }: Prop
       .filter((r) => r.score !== Infinity)
       .sort((a, b) => a.score - b.score)
       .map((r) => r.row);
-  }, [rows, query]);
+  }, [rows, query, pageNumber]);
 
   useEffect(() => {
     input.current?.focus();
@@ -91,7 +102,7 @@ export function FieldFinder({ schema, state, pageNumber, onPick, onClose }: Prop
 
   const choose = (row: Row | undefined) => {
     if (!row) return;
-    onPick(row.id);
+    onPick(row.id, row.pageNumber);
     onClose();
   };
 
@@ -140,7 +151,12 @@ export function FieldFinder({ schema, state, pageNumber, onPick, onClose }: Prop
                   {row.label}
                   {row.context && <em className="finder-context">{row.context}</em>}
                 </span>
-                <span className="finder-section">{row.section}</span>
+                <span className="finder-section">
+                  {schema.analyzedPages.length > 1 && (
+                    <span className="finder-page">p{row.pageNumber}</span>
+                  )}
+                  {row.section}
+                </span>
                 {row.needsReview ? (
                   <span className="chip pending">review</span>
                 ) : row.filled ? (

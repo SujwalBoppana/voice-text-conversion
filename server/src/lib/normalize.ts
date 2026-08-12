@@ -234,6 +234,49 @@ function clamp01(n: number | undefined): number | undefined {
   return Math.min(1, Math.max(0, n));
 }
 
+/**
+ * Make field ids unique across the whole document.
+ *
+ * `normalizePage` only guarantees uniqueness within its own page, but ids are
+ * the addressing scheme for the entire form: extraction maps a sentence to an
+ * id, and `findField` resolves an id to exactly one field. Two pages that both
+ * print "Name" would otherwise collide, and every value for the second page's
+ * field would land on the first page's.
+ *
+ * Earlier pages keep their ids; a later duplicate is suffixed with its page.
+ */
+export function dedupeIdsAcrossPages(pages: PageSchema[]): void {
+  const seen = new Set<string>();
+
+  for (const page of [...pages].sort((a, b) => a.pageNumber - b.pageNumber)) {
+    const renamed = new Map<string, string>();
+
+    for (const section of page.sections) {
+      for (const field of section.fields) {
+        if (!seen.has(field.id)) {
+          seen.add(field.id);
+          continue;
+        }
+        let candidate = `${field.id}_p${page.pageNumber}`;
+        let n = 2;
+        while (seen.has(candidate)) candidate = `${field.id}_p${page.pageNumber}_${n++}`;
+        renamed.set(field.id, candidate);
+        seen.add(candidate);
+        field.id = candidate;
+      }
+    }
+
+    // Keep in-page cross references pointing at the fields they were describing.
+    if (!renamed.size) continue;
+    for (const section of page.sections) {
+      for (const field of section.fields) {
+        if (!field.relatedFieldIds) continue;
+        field.relatedFieldIds = field.relatedFieldIds.map((id) => renamed.get(id) ?? id);
+      }
+    }
+  }
+}
+
 export function newFormId(): string {
   return `form_${randomUUID().slice(0, 8)}`;
 }

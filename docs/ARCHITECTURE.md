@@ -216,14 +216,32 @@ the catalogue are discarded before validation; every value is re-parsed against
 its declared type; enum values must match a printed option. Model confidence is
 deliberately *not* an input to any of this.
 
-## Page-awareness without page navigation
+## Pages
 
-The MVP analyzes page 1 only, as specified. But the data model is page-keyed
-end to end: `FormSchema.pages[]`, `FormState.pages[pageNumber][fieldId]`, assets
-stored per page, the analysis cache keyed on `(hash, page, model)`, and
-`ingestDocument` taking a `pageNumbers` array. Enabling pages 2–n is
-`MAX_ANALYZED_PAGES=4` plus a page switcher in the UI — no migration, no
-redesign.
+`MAX_ANALYZED_PAGES` (default 2) sets how many leading pages are read. The whole
+pipeline is page-keyed: `FormSchema.pages[]`,
+`FormState.pages[pageNumber][fieldId]`, per-page stored assets, an analysis cache
+keyed on `(hash, page, model)`, and `ingestDocument` taking a `pageNumbers`
+array. Raising the number is the only change required.
+
+**Pages are analyzed concurrently.** They are independent, so two pages cost
+twice the tokens but roughly one page's wall-clock time — which is what makes a
+multi-page scope usable rather than a doubling of the wait.
+
+**Ids are unique across the document.** `normalizePage` only guarantees
+uniqueness within its own page, but ids are the addressing scheme for the whole
+form: extraction maps a sentence to an id and `findField` resolves an id to
+exactly one field. A form printing "Name" on every page would otherwise send
+every page's value to the first one. `dedupeIdsAcrossPages` keeps earlier pages'
+ids and suffixes later duplicates (`name_p2`), fixing up in-page cross
+references as it goes. It runs on clones, so rewriting ids can never corrupt the
+cached page a later upload will reuse.
+
+**Extraction spans pages; the UI shows one.** A speaker describing a case has no
+idea which page a field was printed on, so the field catalogue is built from
+every analyzed page and an update may land anywhere. The UI follows: chips,
+⌘K, the review counter and the auto-scroll all switch page when the value they
+point at lives on another one.
 
 ## Clinical safety
 

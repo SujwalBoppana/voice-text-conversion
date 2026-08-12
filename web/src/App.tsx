@@ -91,22 +91,40 @@ export default function App() {
     session.clearKeyProblem();
   }, [session]);
 
+  /**
+   * Counted across every analyzed page, not just the one on screen: the
+   * conversation fills the whole document, so a per-page total would understate
+   * what is left and hide review items on the other page.
+   */
   const progress = useMemo(() => {
-    if (!schema || !state) {
-      return { filled: 0, total: 0, pending: [] as string[], required: 0, requiredFilled: 0 };
-    }
-    const fields = fieldsOfPage(schema, pageNumber);
-    const page = state.pages[pageNumber] ?? {};
-    const has = (id: string) => page[id]?.value !== null && page[id]?.value !== undefined;
-    const required = fields.filter((f) => f.required);
-    return {
-      total: fields.length,
-      filled: fields.filter((f) => has(f.id)).length,
-      pending: fields.filter((f) => Boolean(page[f.id]?.pending)).map((f) => f.id),
-      required: required.length,
-      requiredFilled: required.filter((f) => has(f.id)).length,
+    const empty = {
+      filled: 0,
+      total: 0,
+      pending: [] as Array<{ id: string; page: number }>,
+      required: 0,
+      requiredFilled: 0,
+      byPage: new Map<number, { filled: number; total: number; pending: number }>(),
     };
-  }, [schema, state, pageNumber]);
+    if (!schema || !state) return empty;
+
+    const result = { ...empty, pending: [] as Array<{ id: string; page: number }>, byPage: new Map() };
+    for (const page of schema.analyzedPages) {
+      const fields = fieldsOfPage(schema, page);
+      const values = state.pages[page] ?? {};
+      const has = (id: string) => values[id]?.value !== null && values[id]?.value !== undefined;
+      const filled = fields.filter((f) => has(f.id)).length;
+      const pending = fields.filter((f) => Boolean(values[f.id]?.pending));
+      const required = fields.filter((f) => f.required);
+
+      result.total += fields.length;
+      result.filled += filled;
+      result.required += required.length;
+      result.requiredFilled += required.filter((f) => has(f.id)).length;
+      result.pending.push(...pending.map((f) => ({ id: f.id, page })));
+      result.byPage.set(page, { filled, total: fields.length, pending: pending.length });
+    }
+    return result;
+  }, [schema, state]);
 
   const settingsDialog = settingsTab ? (
     <SettingsDialog
@@ -150,8 +168,35 @@ export default function App() {
             {schema.title}
           </strong>
           <span className="meta">
-            page {pageNumber} of {schema.pageCount}
-            {schema.pageCount > 1 && <span className="pill">page 1 only in this version</span>}
+            {schema.analyzedPages.length > 1 ? (
+              <span className="pages" role="tablist" aria-label="Page">
+                {schema.analyzedPages.map((n) => {
+                  const stats = progress.byPage.get(n);
+                  return (
+                    <button
+                      key={n}
+                      role="tab"
+                      aria-selected={n === pageNumber}
+                      className={n === pageNumber ? 'page-tab active' : 'page-tab'}
+                      onClick={() => session.setPage(n)}
+                      title={
+                        stats ? `${stats.filled}/${stats.total} filled on page ${n}` : `Page ${n}`
+                      }
+                    >
+                      Page {n}
+                      {stats && stats.pending > 0 && <i className="dot warn" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </span>
+            ) : (
+              <>page {pageNumber} of {schema.pageCount}</>
+            )}
+            {schema.pageCount > schema.analyzedPages.length && (
+              <span className="pill">
+                {schema.analyzedPages.length} of {schema.pageCount} pages analyzed
+              </span>
+            )}
             <button
               className="model-chip"
               title="Models in use — click to change"
@@ -183,6 +228,7 @@ export default function App() {
             </div>
             <span className="progress-text">
               {progress.filled}/{progress.total}
+              {schema.analyzedPages.length > 1 && <span className="req-count"> all pages</span>}
               {progress.required > 0 && (
                 <span className="req-count">
                   {' '}
@@ -195,7 +241,12 @@ export default function App() {
           {progress.pending.length > 0 && (
             <button
               className="review-button"
-              onClick={() => session.focusField(progress.pending[0] ?? null)}
+              onClick={() =>
+                session.focusField(
+                  progress.pending[0]?.id ?? null,
+                  progress.pending[0]?.page,
+                )
+              }
               title="Jump to the next value awaiting your decision"
             >
               ⚠ {progress.pending.length} to review
@@ -274,7 +325,7 @@ export default function App() {
                 schema={schema}
                 state={state}
                 pageNumber={pageNumber}
-                assetUrl={snapshot.pageAssetUrl ?? ''}
+                assetUrl={`/api/forms/${schema.formId}/pages/${pageNumber}/asset`}
                 justUpdated={snapshot.justUpdated}
                 onChange={(fieldId, value) => void session.edit(fieldId, value)}
                 onResolve={(fieldId, choice) => void session.resolve(fieldId, choice)}
@@ -292,7 +343,7 @@ export default function App() {
           modelLabel={settingsStore.labelFor(settings.extractionModel)}
           onSay={(text) => session.say(text)}
           onFlush={() => void session.flush()}
-          onJumpToField={(fieldId) => session.focusField(fieldId)}
+          onJumpToField={(fieldId, page) => session.focusField(fieldId, page)}
         />
       </main>
 
@@ -322,7 +373,7 @@ export default function App() {
           schema={schema}
           state={state}
           pageNumber={pageNumber}
-          onPick={(fieldId) => session.focusField(fieldId)}
+          onPick={(fieldId, page) => session.focusField(fieldId, page)}
           onClose={() => setFinderOpen(false)}
         />
       )}

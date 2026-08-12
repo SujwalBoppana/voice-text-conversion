@@ -32,6 +32,11 @@ export function UploadScreen({
   const [localError, setLocalError] = useState<string | null>(null);
   const busy = status === 'uploading' || status === 'analyzing';
   const blocked = !settings.ready;
+  const pages = settings.server?.maxAnalyzedPages ?? 1;
+  const pageScope =
+    pages === 1
+      ? 'Page 1 is processed.'
+      : `The first ${pages} pages are processed — one model call each, run in parallel.`;
 
   const pick = (files: FileList | null) => {
     const file = files?.[0];
@@ -68,8 +73,8 @@ export function UploadScreen({
         </div>
         <p className="lede">
           Upload any form — a scanned clinic sheet, an onboarding pack, an account opening form.
-          Page&nbsp;1 is read visually, turned into an editable form that keeps the original layout,
-          and filled from what you dictate.
+          It is read visually, turned into an editable form that keeps the original layout, and
+          filled from what you dictate.
         </p>
 
         {blocked ? (
@@ -112,6 +117,7 @@ export function UploadScreen({
                 uploadProgress={uploadProgress}
                 fileName={uploadingName ?? ''}
                 modelLabel={modelLabel}
+                pages={pages}
               />
             ) : (
               <>
@@ -122,7 +128,7 @@ export function UploadScreen({
                   <b>Drop a PDF or image here</b>
                 </p>
                 <p className="hint">or click to choose · PDF, PNG, JPEG, WebP · up to {MAX_MB} MB</p>
-                <p className="hint small">Only page 1 is processed in this version.</p>
+                <p className="hint small">{pageScope}</p>
               </>
             )}
             <input

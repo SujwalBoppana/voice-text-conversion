@@ -14,16 +14,18 @@ interface Props {
   uploadProgress: number | null;
   fileName: string;
   modelLabel: string;
+  /** How many leading pages this server analyzes. */
+  pages: number;
 }
 
 const STEPS = [
   { key: 'upload', label: 'Sending the document' },
-  { key: 'extract', label: 'Taking page 1 out of the file' },
+  { key: 'extract', label: 'Taking the pages out of the file' },
   { key: 'read', label: 'Reading the layout' },
   { key: 'build', label: 'Building the form' },
 ] as const;
 
-export function AnalysisProgress({ phase, uploadProgress, fileName, modelLabel }: Props) {
+export function AnalysisProgress({ phase, uploadProgress, fileName, modelLabel, pages }: Props) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function AnalysisProgress({ phase, uploadProgress, fileName, modelLabel }
         <div className="spinner" />
         <div>
           <p className="analysis-title">
-            {phase === 'uploading' ? 'Uploading' : 'Reading page 1'}
+            {phase === 'uploading' ? 'Uploading' : pages === 1 ? 'Reading page 1' : `Reading ${pages} pages`}
             <span className="elapsed">{elapsed}s</span>
           </p>
           <p className="hint truncate" title={fileName}>
@@ -77,8 +79,12 @@ export function AnalysisProgress({ phase, uploadProgress, fileName, modelLabel }
 
       <p className="hint small">
         {phase === 'uploading'
-          ? 'Only page 1 is sent for analysis.'
-          : `${modelLabel} is finding sections, blanks and printed choices, and where each one sits. This happens once per document — usually 10–30 seconds.`}
+          ? pages === 1
+            ? 'Page 1 is sent for analysis.'
+            : `The first ${pages} pages are sent for analysis.`
+          : `${modelLabel} is finding sections, blanks and printed choices, and where each one sits.${
+              pages > 1 ? ' Pages are read in parallel.' : ''
+            } This happens once per document — usually 10–30 seconds.`}
       </p>
     </div>
   );
