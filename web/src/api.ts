@@ -77,11 +77,46 @@ export const api = {
   health: () =>
     request<{ ok: boolean; mockGemini: boolean; serverHasKey: boolean }>('/api/health'),
 
-  upload: (file: File, signal?: AbortSignal) => {
-    const body = new FormData();
-    body.append('file', file);
-    return request<UploadResponse>('/api/forms', { method: 'POST', body, signal });
-  },
+  /**
+   * Upload via XHR rather than fetch, purely so the UI can show real upload
+   * progress — `fetch` still has no request-body progress event. A 25 MB scan
+   * over a slow link is otherwise several silent seconds.
+   */
+  upload: (file: File, onProgress?: (fraction: number) => void, signal?: AbortSignal) =>
+    new Promise<UploadResponse>((resolve, reject) => {
+      const body = new FormData();
+      body.append('file', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/forms');
+      for (const [name, value] of Object.entries(authHeaders())) xhr.setRequestHeader(name, value);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+      };
+      xhr.onload = () => {
+        const parsed = safeParse(xhr.responseText) as
+          | (UploadResponse & { error?: { code?: string; message?: string } })
+          | null;
+        if (xhr.status >= 200 && xhr.status < 300 && parsed) {
+          resolve(parsed);
+          return;
+        }
+        reject(
+          new ApiError(
+            parsed?.error?.code ?? 'HTTP_ERROR',
+            parsed?.error?.message ?? `Upload failed with ${xhr.status}`,
+            xhr.status,
+          ),
+        );
+      };
+      xhr.onerror = () =>
+        reject(new ApiError('NETWORK', 'Could not reach the server. Is it running?', 0));
+      xhr.onabort = () => reject(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
+
+      signal?.addEventListener('abort', () => xhr.abort());
+      xhr.send(body);
+    }),
 
   get: (formId: string) => request<FormEnvelope>(`/api/forms/${formId}`),
 

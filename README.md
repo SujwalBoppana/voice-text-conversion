@@ -85,9 +85,18 @@ Fields fill and are badged `auto`. Then try each guard:
 
 Each reply carries chips for the fields it touched — click one to jump straight
 to that field. The toolbar shows live progress and a **to review** button that
-walks you through anything awaiting a decision. Switch to **Original** to see the
-same live fields overlaid on the real page (Mode B). Every field is editable by
-hand; a hand-edited field can never be silently overwritten.
+walks you through anything awaiting a decision. Press **⌘K** to jump to any field
+by name. Switch to **Original** to see the same live fields overlaid on the real
+page (Mode B). Every field is editable by hand; a hand-edited field can never be
+silently overwritten.
+
+| Shortcut | |
+|---|---|
+| `⌘K` / `Ctrl-K` | Find and jump to a field |
+| `⌘S` / `Ctrl-S` | Save the form |
+| `⌘/` / `Ctrl-/` | Focus the conversation box |
+| `Enter` / `Shift+Enter` | Send / newline, in the conversation box |
+| `Esc` | Close a dialog |
 
 **From the shell:**
 
@@ -168,6 +177,7 @@ phrase it came from, and a human reviews before saving.
 | `thinkingBudget: 0` on extraction | The biggest single lever on time-to-first-token |
 | `maxOutputTokens: 2048`, one short string per field | Small responses by construction |
 | Optimistic manual edits | Typing never waits on a round trip |
+| Model list cached 10 min per key | The picker opens instantly after the first load |
 | In-flight request superseding | A newer burst aborts a stale one |
 | pdf.js code-split out of the main bundle | 168 KB initial JS instead of 534 KB |
 
@@ -203,8 +213,15 @@ not in a config file:
   `x-gemini-api-key` on the requests that need it, and is never written to disk
   or into a form record by the server. It is always displayed masked, with a
   one-click **Forget key**.
-- **Model choice is per-role** — one model for reading the page, one for the
-  conversation — each with a plain-language note on the trade-off.
+- **Models are listed live from your key's project.** The picker calls Google's
+  model list, so it offers exactly what your key can run — no dead options, and
+  new models appear without a release. A static list is the fallback if the call
+  fails, so the picker is never empty.
+- **Model choice is per-role** — one for reading the page, one for the
+  conversation — presented as cards with the trade-off next to each name, since
+  the consequence of the choice is not guessable from a model id. A stored choice
+  that is no longer available silently falls back to the best option for its role
+  instead of failing on the next upload.
 - **Failures route back to Settings.** A rejected key, an unavailable model or a
   missing key reopens the dialog with the reason at the top, rather than dead-
   ending in a red banner.

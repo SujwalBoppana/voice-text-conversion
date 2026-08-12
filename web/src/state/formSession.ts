@@ -56,7 +56,13 @@ export interface SessionSnapshot {
   /** Field the UI should scroll to and focus; cleared once handled. */
   focusFieldId: string | null;
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';
+  /** Real upload progress 0..1 while the body is being sent, else null. */
+  uploadProgress: number | null;
+  /** Name of the file being analyzed, for the progress panel. */
+  uploadingName: string | null;
   busy: boolean;
+  /** True when values changed since the last save. */
+  dirty: boolean;
   /** Draft lines waiting for the debounce window to close. */
   queuedLines: number;
   error: string | null;
@@ -85,7 +91,10 @@ export class FormSession {
     justUpdated: [],
     focusFieldId: null,
     status: 'idle',
+    uploadProgress: null,
+    uploadingName: null,
     busy: false,
+    dirty: false,
     queuedLines: 0,
     error: null,
     keyProblem: null,
@@ -127,12 +136,23 @@ export class FormSession {
   /* ------------------------------- lifecycle ------------------------------ */
 
   async upload(file: File): Promise<void> {
-    this.set({ status: 'uploading', error: null, keyProblem: null, busy: true });
+    this.set({
+      status: 'uploading',
+      uploadProgress: 0,
+      uploadingName: file.name,
+      error: null,
+      keyProblem: null,
+      busy: true,
+    });
     try {
-      // The status flips to "analyzing" straight away: the upload itself is
-      // milliseconds on a LAN, the model call is the wait worth naming.
-      this.set({ status: 'analyzing' });
-      const result = await api.upload(file);
+      const result = await api.upload(file, (fraction) => {
+        // Real progress from the XHR upload event; once the body is sent the
+        // wait is the model call, which reports nothing.
+        this.set({
+          uploadProgress: fraction,
+          status: fraction >= 1 ? 'analyzing' : 'uploading',
+        });
+      });
       const fieldCount = result.schema.pages[0]?.sections.flatMap((s) => s.fields).length ?? 0;
       this.set({
         schema: result.schema,
@@ -143,6 +163,9 @@ export class FormSession {
         pageNumber: result.schema.analyzedPages[0] ?? 1,
         status: 'ready',
         busy: false,
+        uploadProgress: null,
+        uploadingName: null,
+        dirty: false,
         analysisUsage: result.usage ?? null,
         savedAt: null,
         justUpdated: [],
@@ -155,6 +178,7 @@ export class FormSession {
         }.`,
       );
     } catch (error) {
+      this.set({ uploadProgress: null, uploadingName: null });
       this.fail(error, 'The document could not be analyzed.');
     }
   }
@@ -192,7 +216,10 @@ export class FormSession {
       turnResults: {},
       pageAssetUrl: null,
       status: 'idle',
+      uploadProgress: null,
+      uploadingName: null,
       busy: false,
+      dirty: false,
       error: null,
       keyProblem: null,
       justUpdated: [],
@@ -291,6 +318,7 @@ export class FormSession {
       this.set({
         state: result.state,
         busy: false,
+        dirty: applied.length > 0 || pending.length > 0 || this.snapshot.dirty,
         lastUsage: result.extraction.usage ?? null,
         justUpdated: touched,
         // Scroll to the first thing that needs a decision, else the first fill.
@@ -342,7 +370,7 @@ export class FormSession {
 
     try {
       const result = await api.editField(schema.formId, fieldId, pageNumber, value);
-      this.set({ state: result.state });
+      this.set({ state: result.state, dirty: true });
     } catch (error) {
       this.patchField(fieldId, previous); // roll back to what the server still holds
       this.fail(error, 'That edit could not be saved.');
@@ -354,7 +382,7 @@ export class FormSession {
     if (!schema) return;
     try {
       const result = await api.resolveField(schema.formId, fieldId, pageNumber, choice);
-      this.set({ state: result.state, justUpdated: [fieldId] });
+      this.set({ state: result.state, justUpdated: [fieldId], dirty: true });
       this.scheduleFlashClear();
     } catch (error) {
       this.fail(error, 'That conflict could not be resolved.');
@@ -367,7 +395,7 @@ export class FormSession {
     this.set({ busy: true, error: null });
     try {
       const result = await api.save(schema.formId);
-      this.set({ state: result.state, savedAt: result.savedAt, busy: false });
+      this.set({ state: result.state, savedAt: result.savedAt, busy: false, dirty: false });
       this.toast('success', 'Form saved.');
     } catch (error) {
       this.fail(error, 'The form could not be saved.');

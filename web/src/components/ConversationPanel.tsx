@@ -8,6 +8,7 @@ interface Props {
   busy: boolean;
   queuedLines: number;
   usage: ExtractionResponse['usage'] | null;
+  modelLabel: string;
   onSay: (text: string) => void;
   onFlush: () => void;
   onJumpToField: (fieldId: string) => void;
@@ -25,6 +26,7 @@ export function ConversationPanel({
   busy,
   queuedLines,
   usage,
+  modelLabel,
   onSay,
   onFlush,
   onJumpToField,
@@ -154,11 +156,11 @@ export function ConversationPanel({
 
       <footer className="usage">
         <span className="hint small">Enter to send · Shift+Enter for a new line</span>
-        {usage && (
-          <span title="Tokens used by the last extraction call">
-            {usage.model} · {usage.totalTokens ?? '–'} tok · {usage.latencyMs} ms
-          </span>
-        )}
+        <span title="Tokens and latency of the last extraction call">
+          {usage
+            ? `${usage.totalTokens ?? '–'} tok · ${usage.latencyMs} ms`
+            : modelLabel}
+        </span>
       </footer>
     </aside>
   );

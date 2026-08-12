@@ -49,6 +49,43 @@ curl -s localhost:4000/api/settings
 
 ---
 
+## `GET /api/settings/models`
+
+The models the supplied key can actually use, queried live from Google and
+cached for 10 minutes per key. Send `x-gemini-api-key`; without one it falls back
+to the server key, and without that to a small static list.
+
+```bash
+curl -s localhost:4000/api/settings/models -H "x-gemini-api-key: $GEMINI_API_KEY"
+```
+
+```json
+{
+  "live": true,
+  "models": [
+    {
+      "id": "gemini-2.5-pro",
+      "label": "Gemini 2.5 Pro",
+      "description": "…",
+      "roles": ["analysis"],
+      "note": "Most accurate on scans and dense forms. Slower.",
+      "inputTokenLimit": 1048576,
+      "rank": 10,
+      "recommendedFor": "analysis"
+    }
+  ]
+}
+```
+
+`live: false` means the listing call failed or no key was available, and the
+static fallback is being returned — the picker still works.
+
+`roles` is where a model is offered: `-lite` tiers are not offered for page
+analysis (a vision task larger models do much better), and Pro is not offered for
+extraction (it would cost latency in the critical path for no accuracy gain).
+
+---
+
 ## `POST /api/settings/verify-key`
 
 Checks a key before the app stores it. Uses `countTokens`, which is free, so
@@ -61,8 +98,16 @@ curl -s -X POST localhost:4000/api/settings/verify-key \
 ```
 
 ```json
-{ "ok": true, "model": "gemini-2.5-flash", "message": "Key works with gemini-2.5-flash." }
+{
+  "ok": true,
+  "model": "gemini-2.5-flash",
+  "message": "Key works. 14 models available.",
+  "models": [{ "id": "gemini-2.5-pro", "label": "Gemini 2.5 Pro", "...": "" }]
+}
 ```
+
+The model list is returned with the verification so the picker is populated the
+moment a key is saved, without a second round trip.
 
 Rejected (`400`):
 

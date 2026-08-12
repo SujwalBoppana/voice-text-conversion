@@ -1,18 +1,32 @@
 import { useRef, useState } from 'react';
 import type { SettingsSnapshot } from '../state/settingsStore';
+import type { SettingsTab } from './SettingsDialog';
+import { AnalysisProgress } from './AnalysisProgress';
 
 interface Props {
   status: 'idle' | 'uploading' | 'analyzing' | 'ready' | 'error';
+  uploadProgress: number | null;
+  uploadingName: string | null;
   error: string | null;
   settings: SettingsSnapshot;
+  modelLabel: string;
   onUpload: (file: File) => void;
-  onOpenSettings: () => void;
+  onOpenSettings: (tab?: SettingsTab) => void;
 }
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp';
 const MAX_MB = 25;
 
-export function UploadScreen({ status, error, settings, onUpload, onOpenSettings }: Props) {
+export function UploadScreen({
+  status,
+  uploadProgress,
+  uploadingName,
+  error,
+  settings,
+  modelLabel,
+  onUpload,
+  onOpenSettings,
+}: Props) {
   const input = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -39,7 +53,7 @@ export function UploadScreen({ status, error, settings, onUpload, onOpenSettings
   const open = () => {
     if (busy) return;
     if (blocked) {
-      onOpenSettings();
+      onOpenSettings('key');
       return;
     }
     input.current?.click();
@@ -64,7 +78,7 @@ export function UploadScreen({ status, error, settings, onUpload, onOpenSettings
             <p className="hint">
               The key stays in this browser. Getting one is free and takes about a minute.
             </p>
-            <button className="primary large" onClick={onOpenSettings}>
+            <button className="primary large" onClick={() => onOpenSettings('key')}>
               Add API key
             </button>
           </div>
@@ -93,16 +107,12 @@ export function UploadScreen({ status, error, settings, onUpload, onOpenSettings
             }}
           >
             {busy ? (
-              <>
-                <div className="spinner" />
-                <p>
-                  <b>{status === 'uploading' ? 'Uploading…' : 'Reading page 1…'}</b>
-                </p>
-                <p className="hint">
-                  Finding sections, blanks, printed choices and their positions. A few seconds, once
-                  per document.
-                </p>
-              </>
+              <AnalysisProgress
+                phase={status === 'uploading' ? 'uploading' : 'analyzing'}
+                uploadProgress={uploadProgress}
+                fileName={uploadingName ?? ''}
+                modelLabel={modelLabel}
+              />
             ) : (
               <>
                 <div className="drop-icon" aria-hidden="true">
@@ -135,17 +145,29 @@ export function UploadScreen({ status, error, settings, onUpload, onOpenSettings
         )}
 
         <div className="upload-foot">
-          <button className="ghost small" onClick={onOpenSettings}>
+          <button className="ghost small" onClick={() => onOpenSettings('key')}>
             ⚙ Settings
           </button>
           <span className="hint small">
-            {settings.server?.mockGemini
-              ? 'Mock mode — no API calls'
-              : settings.apiKey
-                ? 'Key set in this browser'
-                : settings.server?.serverHasKey
-                  ? 'Using the server key'
-                  : 'No key set'}
+            {settings.server?.mockGemini ? (
+              'Mock mode — no API calls'
+            ) : (
+              <>
+                {settings.apiKey
+                  ? 'Key set in this browser'
+                  : settings.server?.serverHasKey
+                    ? 'Using the server key'
+                    : 'No key set'}
+                {settings.ready && (
+                  <>
+                    {' · '}
+                    <button className="link" onClick={() => onOpenSettings('models')}>
+                      {modelLabel}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
           </span>
         </div>
 

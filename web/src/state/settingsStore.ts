@@ -12,18 +12,23 @@ const KEY_STORAGE = 'formfill.geminiApiKey';
 const ANALYSIS_STORAGE = 'formfill.analysisModel';
 const EXTRACTION_STORAGE = 'formfill.extractionModel';
 
-export interface ModelOption {
+export type ModelRole = 'analysis' | 'extraction';
+
+export interface ModelChoice {
   id: string;
   label: string;
+  description: string;
+  roles: ModelRole[];
   note: string;
-  roles: string[];
+  inputTokenLimit?: number;
+  rank: number;
+  recommendedFor?: ModelRole;
 }
 
 export interface ServerSettings {
   serverHasKey: boolean;
   mockGemini: boolean;
   defaults: { analysisModel: string; extractionModel: string };
-  models: ModelOption[];
   maxAnalyzedPages: number;
   maxUploadBytes: number;
   apiKeyUrl: string;
@@ -34,6 +39,10 @@ export interface SettingsSnapshot {
   analysisModel: string;
   extractionModel: string;
   server: ServerSettings | null;
+  models: ModelChoice[];
+  /** True when `models` came from Google rather than the static fallback. */
+  modelsLive: boolean;
+  modelsLoading: boolean;
   /** True when a call can be made: the app has a key, or the server does, or mock. */
   ready: boolean;
 }
@@ -62,6 +71,9 @@ export class SettingsStore {
     analysisModel: read(ANALYSIS_STORAGE),
     extractionModel: read(EXTRACTION_STORAGE),
     server: null,
+    models: [],
+    modelsLive: false,
+    modelsLoading: false,
     ready: Boolean(read(KEY_STORAGE)),
   };
 
@@ -88,6 +100,14 @@ export class SettingsStore {
     return h;
   }
 
+  modelsFor(role: ModelRole): ModelChoice[] {
+    return this.snapshot.models.filter((m) => m.roles.includes(role));
+  }
+
+  labelFor(modelId: string): string {
+    return this.snapshot.models.find((m) => m.id === modelId)?.label ?? modelId;
+  }
+
   async loadServerSettings(): Promise<void> {
     try {
       const response = await fetch('/api/settings');
@@ -98,18 +118,74 @@ export class SettingsStore {
         analysisModel: this.snapshot.analysisModel || server.defaults.analysisModel,
         extractionModel: this.snapshot.extractionModel || server.defaults.extractionModel,
       });
+      await this.loadModels();
     } catch {
       /* the settings panel falls back to sensible defaults */
     }
   }
 
-  setApiKey(apiKey: string): void {
-    const trimmed = apiKey.trim();
-    write(KEY_STORAGE, trimmed);
-    this.set({ apiKey: trimmed });
+  /** Ask which models this key can actually use. Safe to call repeatedly. */
+  async loadModels(): Promise<void> {
+    if (this.snapshot.modelsLoading) return;
+    this.set({ modelsLoading: true });
+    try {
+      const response = await fetch('/api/settings/models', { headers: this.headers() });
+      if (!response.ok) return;
+      const body = (await response.json()) as { models: ModelChoice[]; live: boolean };
+      this.set({ models: body.models ?? [], modelsLive: Boolean(body.live) });
+      this.ensureValidSelection();
+    } catch {
+      /* keep whatever list we already had */
+    } finally {
+      this.set({ modelsLoading: false });
+    }
   }
 
-  setModel(role: 'analysis' | 'extraction', model: string): void {
+  /**
+   * Keep the stored choices pointing at something real: a model that has since
+   * been withdrawn, or one stored before the key changed, silently falls back to
+   * the best available option for its role rather than failing on next upload.
+   */
+  private ensureValidSelection(): void {
+    const { models, analysisModel, extractionModel, server } = this.snapshot;
+    if (!models.length) return;
+
+    const fix = (current: string, role: ModelRole, storage: string, fallback: string) => {
+      if (models.some((m) => m.id === current)) return current;
+      const best =
+        models.find((m) => m.recommendedFor === role) ??
+        models.find((m) => m.roles.includes(role)) ??
+        models[0];
+      const next = best?.id ?? fallback;
+      write(storage, next);
+      return next;
+    };
+
+    this.set({
+      analysisModel: fix(
+        analysisModel,
+        'analysis',
+        ANALYSIS_STORAGE,
+        server?.defaults.analysisModel ?? analysisModel,
+      ),
+      extractionModel: fix(
+        extractionModel,
+        'extraction',
+        EXTRACTION_STORAGE,
+        server?.defaults.extractionModel ?? extractionModel,
+      ),
+    });
+  }
+
+  setApiKey(apiKey: string, models?: ModelChoice[]): void {
+    const trimmed = apiKey.trim();
+    write(KEY_STORAGE, trimmed);
+    this.set(models?.length ? { apiKey: trimmed, models, modelsLive: true } : { apiKey: trimmed });
+    if (models?.length) this.ensureValidSelection();
+    else void this.loadModels();
+  }
+
+  setModel(role: ModelRole, model: string): void {
     if (role === 'analysis') {
       write(ANALYSIS_STORAGE, model);
       this.set({ analysisModel: model });
@@ -121,11 +197,11 @@ export class SettingsStore {
 
   forget(): void {
     write(KEY_STORAGE, '');
-    this.set({ apiKey: '' });
+    this.set({ apiKey: '', models: [], modelsLive: false });
   }
 
   /** Ask the server whether a key works. Free — it uses countTokens. */
-  async verify(apiKey: string): Promise<{ ok: boolean; message: string }> {
+  async verify(apiKey: string): Promise<{ ok: boolean; message: string; models?: ModelChoice[] }> {
     try {
       const response = await fetch('/api/settings/verify-key', {
         method: 'POST',
@@ -135,9 +211,12 @@ export class SettingsStore {
       const body = (await response.json()) as {
         ok?: boolean;
         message?: string;
+        models?: ModelChoice[];
         error?: { message?: string };
       };
-      if (response.ok && body.ok) return { ok: true, message: body.message ?? 'Key works.' };
+      if (response.ok && body.ok) {
+        return { ok: true, message: body.message ?? 'Key works.', models: body.models };
+      }
       return { ok: false, message: body.error?.message ?? body.message ?? 'That key was rejected.' };
     } catch {
       return { ok: false, message: 'Could not reach the server to check the key.' };

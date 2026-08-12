@@ -9,35 +9,9 @@ import { config } from '../config.js';
 import { AppError } from '../lib/errors.js';
 import { looksLikeApiKey, readRequestKey } from '../lib/apiKey.js';
 import { verifyApiKey } from '../services/geminiClient.js';
+import { listModels } from '../services/modelCatalog.js';
 
 export const settingsRouter = Router();
-
-/**
- * Models offered in the app. Kept as a short curated list with a plain-language
- * note on each, because "which model?" is otherwise an unanswerable question for
- * someone who just wants their form read. Any other id can still be set through
- * the environment.
- */
-const MODEL_OPTIONS = [
-  {
-    id: 'gemini-2.5-pro',
-    label: 'Gemini 2.5 Pro',
-    note: 'Most accurate on scans and dense forms. Slower.',
-    roles: ['analysis'],
-  },
-  {
-    id: 'gemini-2.5-flash',
-    label: 'Gemini 2.5 Flash',
-    note: 'Fast and cheap. Good for clean digital PDFs and for conversation.',
-    roles: ['analysis', 'extraction'],
-  },
-  {
-    id: 'gemini-2.5-flash-lite',
-    label: 'Gemini 2.5 Flash Lite',
-    note: 'Lowest latency. Best only for short, plain dictation.',
-    roles: ['extraction'],
-  },
-] as const;
 
 /** GET /api/settings — what the app needs to render its settings panel. */
 settingsRouter.get('/', (_req, res) => {
@@ -50,11 +24,27 @@ settingsRouter.get('/', (_req, res) => {
       analysisModel: config.analysisModel,
       extractionModel: config.extractionModel,
     },
-    models: MODEL_OPTIONS,
     maxAnalyzedPages: config.maxAnalyzedPages,
     maxUploadBytes: config.maxUploadBytes,
     apiKeyUrl: 'https://aistudio.google.com/apikey',
   });
+});
+
+/**
+ * GET /api/settings/models — the models this key can actually use.
+ *
+ * Queried live from Google so the picker never offers something the user's
+ * project cannot run. Falls back to a small static list if the call fails, so
+ * the picker is never empty.
+ */
+settingsRouter.get('/models', async (req, res, next) => {
+  try {
+    const key = readRequestKey(req) ?? config.apiKey;
+    const { models, live } = await listModels(key);
+    res.json({ models, live, defaults: { analysisModel: config.analysisModel, extractionModel: config.extractionModel } });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -86,7 +76,14 @@ settingsRouter.post('/verify-key', async (req, res, next) => {
 
     const result = await verifyApiKey(key, model);
     if (result.ok) {
-      res.json({ ok: true, model: result.model, message: `Key works with ${result.model}.` });
+      // Warm the model list so the picker is populated the moment the key lands.
+      const { models } = await listModels(key);
+      res.json({
+        ok: true,
+        model: result.model,
+        message: `Key works. ${models.length} model${models.length === 1 ? '' : 's'} available.`,
+        models,
+      });
       return;
     }
     res.status(400).json({ ok: false, error: { code: result.code, message: result.message } });
