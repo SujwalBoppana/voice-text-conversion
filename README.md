@@ -20,6 +20,52 @@ changes.
 
 ---
 
+## What it looks like
+
+> Captured from the running app. The conversation panel shots use the offline
+> fixture mode, so the assistant replies are prefixed `[mock]` — with a real key
+> the reply is a sentence from the model. Everything else is identical.
+
+**The form, rendered from the uploaded page.** Sections, rows and column widths
+are derived from the detected geometry, so *Baby details* sits beside *Baby's
+foot print* and `Parity / Gravida / Para / Live Born / Abortions / Death` share
+one row — as printed.
+
+![The generated form](docs/screenshots/05-form-rendered.png)
+
+**Filled from conversation.** Extracted values are badged `auto` and the reply
+carries a chip per field it touched; clicking a chip jumps to that field.
+
+![Fields filled from a dictated sentence](docs/screenshots/06-filled-from-conversation.png)
+
+**A restatement that disagrees becomes a conflict, not an overwrite.** The
+existing value stays until a human decides, with the verbatim phrase it came
+from shown underneath.
+
+![Conflict resolution on a field](docs/screenshots/07-conflict.png)
+
+**⌘K jumps to any field.** Items awaiting a decision sort first, and the printed
+context is shown — which is what separates the three fields all labelled *APGAR
+score*.
+
+![The field finder](docs/screenshots/08-field-finder.png)
+
+**Mode B keeps the original page.** The same live fields, positioned over the
+detected blanks using the coordinates already in the schema.
+
+![Overlay mode over the original page](docs/screenshots/09-overlay-mode.png)
+
+**The key and models are set in the app.** Upload is gated until a key is
+present; the key is checked against Google before it is accepted, and the model
+list is what your key can actually run.
+
+<p align="center">
+  <img src="docs/screenshots/01-key-gate.png" alt="Upload gated on an API key" width="49%">
+  <img src="docs/screenshots/03-settings-models.png" alt="Model selection" width="49%">
+</p>
+
+---
+
 ## Run it locally
 
 **Prerequisites:** Node 20.11+ and a Gemini API key from
@@ -116,6 +162,7 @@ BASE=http://localhost:4000 FILE=my-form.pdf ./scripts/smoke-test.sh
 | [`docs/PROMPTS.md`](docs/PROMPTS.md) | Both prompts, both structured-output schemas, the validation table, the gate |
 | [`docs/example-schema.paramitha-page1.json`](docs/example-schema.paramitha-page1.json) | The real generated schema for the attached form: 9 sections, 50 fields |
 | [`docs/example-conversation.md`](docs/example-conversation.md) | Seven worked conversation → field examples, including a non-clinical form |
+| [`docs/screenshots/`](docs/screenshots) | Screens captured from the running app |
 
 ## Layout
 
